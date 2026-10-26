@@ -17,7 +17,13 @@ services:
         condition: service_healthy
     networks:
       - zibonsathi_net
+      - dokploy-network
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zibonsathi.rule=Host(`zibonsathi-81-17-98-171.sslip.io`)"
+      - "traefik.http.routers.zibonsathi.entrypoints=web"
+      - "traefik.http.services.zibonsathi.loadbalancer.server.port=3000"
 
   db:
     image: postgres:16-alpine
@@ -39,6 +45,8 @@ services:
 networks:
   zibonsathi_net:
     driver: bridge
+  dokploy-network:
+    external: true
 
 volumes:
   postgres_data:
