@@ -1,13 +1,16 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = process.env.EMAIL_FROM ?? "noreply@zibonsathi.com";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY ?? "re_placeholder");
+}
+
+const FROM = () => process.env.EMAIL_FROM ?? "noreply@zibonsathi.com";
+const APP_URL = () => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 export async function sendVerificationEmail(email: string, token: string) {
-  const url = `${APP_URL}/verify-email?token=${token}`;
-  await resend.emails.send({
-    from: FROM,
+  const url = `${APP_URL()}/verify-email?token=${token}`;
+  await getResend().emails.send({
+    from: FROM(),
     to: email,
     subject: "জীবনসাথী - ইমেইল যাচাই করুন",
     html: `
@@ -22,9 +25,9 @@ export async function sendVerificationEmail(email: string, token: string) {
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const url = `${APP_URL}/reset-password?token=${token}`;
-  await resend.emails.send({
-    from: FROM,
+  const url = `${APP_URL()}/reset-password?token=${token}`;
+  await getResend().emails.send({
+    from: FROM(),
     to: email,
     subject: "জীবনসাথী - পাসওয়ার্ড রিসেট",
     html: `
