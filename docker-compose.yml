@@ -1,0 +1,44 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://zibonsathi:zibonsathi@db:5432/zibonsathi}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@zibonsathi.com}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - zibonsathi_net
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: zibonsathi
+      POSTGRES_USER: zibonsathi
+      POSTGRES_PASSWORD: zibonsathi
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zibonsathi -d zibonsathi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zibonsathi_net
+    restart: unless-stopped
+
+networks:
+  zibonsathi_net:
+    driver: bridge
+
+volumes:
+  postgres_data:

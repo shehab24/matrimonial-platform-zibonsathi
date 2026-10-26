@@ -1,0 +1,417 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MaritalStatus {
+  NEVER_MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum ProfileStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum CreditLedgerType {
+  PURCHASE
+  DEDUCTION
+  REFUND
+  ADJUSTMENT
+}
+
+enum MessageStatus {
+  SENT
+  READ
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+// ─── USER ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  emailVerified     DateTime?
+  passwordHash      String?
+  name              String?
+  role              Role      @default(USER)
+  isSuspended       Boolean   @default(false)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  verificationTokens VerificationToken[]
+  passwordResets    PasswordReset[]
+
+  profile           Profile?
+  creditBalance     CreditBalance?
+  creditLedger      CreditLedger[]
+  payments          Payment[]
+
+  connectionsSent   Connection[] @relation("ConnectionSender")
+  connectionsReceived Connection[] @relation("ConnectionReceiver")
+
+  messagesSent      Message[]    @relation("MessageSender")
+  messagesReceived  Message[]    @relation("MessageReceiver")
+
+  favorites         Favorite[]   @relation("FavoriteUser")
+  favoritedBy       Favorite[]   @relation("FavoritedUser")
+
+  reportsSubmitted  Report[]     @relation("ReportSubmitter")
+  reportsReceived   Report[]     @relation("ReportTarget")
+
+  recentlyViewed    RecentlyViewed[]
+
+  @@map("users")
+}
+
+// ─── AUTH (NextAuth) ──────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("verification_tokens")
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+// ─── PROFILE (BIODATA) ────────────────────────────────────────────────────────
+
+model Profile {
+  id                  String        @id @default(cuid())
+  userId              String        @unique
+  status              ProfileStatus @default(DRAFT)
+
+  // Basic
+  displayName         String?
+  dateOfBirth         DateTime?
+  gender              Gender?
+  religion            String?       @default("ইসলাম")
+  sect                String?
+
+  // Location
+  country             String?
+  division            String?
+  district            String?
+  upazila             String?
+
+  // Education & Occupation
+  education           String?
+  educationDetails    String?
+  occupation          String?
+  occupationDetails   String?
+  monthlyIncome       String?
+
+  // Marital & Family
+  maritalStatus       MaritalStatus?
+  numberOfChildren    Int?
+  fatherAlive         Boolean?
+  motherAlive         Boolean?
+  siblings            Int?
+  familyType          String?
+  familyStatus        String?
+
+  // Religious
+  prayerHabit         String?
+  beardOrHijab        String?
+  mazhab              String?
+
+  // About & Preferences
+  aboutMe             String?       @db.Text
+  partnerPreferences  String?       @db.Text
+
+  // Contact (PRIVATE — never expose without authorization)
+  phoneNumber         String?
+  guardianPhone       String?
+
+  // Photos
+  photos              ProfilePhoto[]
+
+  // Visibility
+  isVisible           Boolean       @default(true)
+  showPhoneToConnected Boolean      @default(true)
+  showGuardianPhoneToConnected Boolean @default(true)
+
+  // Admin
+  adminNote           String?       @db.Text
+  approvedAt          DateTime?
+  approvedBy          String?
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connectionsAsSender Connection[]  @relation("ConnectionSenderProfile")
+  connectionsAsReceiver Connection[] @relation("ConnectionReceiverProfile")
+  recentlyViewedBy    RecentlyViewed[]
+
+  @@map("profiles")
+}
+
+model ProfilePhoto {
+  id        String   @id @default(cuid())
+  profileId String
+  url       String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("profile_photos")
+}
+
+// ─── CONNECTIONS ──────────────────────────────────────────────────────────────
+
+model Connection {
+  id               String           @id @default(cuid())
+  senderId         String
+  receiverId       String
+  senderProfileId  String
+  receiverProfileId String
+  status           ConnectionStatus @default(PENDING)
+  creditSpent      Int              @default(1)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  sender           User    @relation("ConnectionSender", fields: [senderId], references: [id])
+  receiver         User    @relation("ConnectionReceiver", fields: [receiverId], references: [id])
+  senderProfile    Profile @relation("ConnectionSenderProfile", fields: [senderProfileId], references: [id])
+  receiverProfile  Profile @relation("ConnectionReceiverProfile", fields: [receiverProfileId], references: [id])
+
+  messages         Message[]
+
+  @@unique([senderId, receiverId])
+  @@map("connections")
+}
+
+// ─── CREDITS & PAYMENTS ───────────────────────────────────────────────────────
+
+model CreditBalance {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_balances")
+}
+
+model CreditPackage {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  credits     Int
+  price       Decimal  @db.Decimal(10, 2)
+  currency    String   @default("BDT")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  payments    Payment[]
+
+  @@map("credit_packages")
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  userId          String
+  packageId       String
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("BDT")
+  provider        String
+  providerRef     String?       @unique
+  status          PaymentStatus @default(PENDING)
+  creditsGranted  Int           @default(0)
+  idempotencyKey  String        @unique
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id])
+  package         CreditPackage @relation(fields: [packageId], references: [id])
+  ledgerEntry     CreditLedger?
+
+  @@map("payments")
+}
+
+model CreditLedger {
+  id          String           @id @default(cuid())
+  userId      String
+  type        CreditLedgerType
+  amount      Int
+  balanceBefore Int
+  balanceAfter  Int
+  paymentId   String?          @unique
+  connectionId String?
+  note        String?
+  createdAt   DateTime         @default(now())
+
+  user        User             @relation(fields: [userId], references: [id])
+  payment     Payment?         @relation(fields: [paymentId], references: [id])
+
+  @@map("credit_ledger")
+}
+
+// ─── MESSAGING ────────────────────────────────────────────────────────────────
+
+model Message {
+  id           String        @id @default(cuid())
+  connectionId String
+  senderId     String
+  receiverId   String
+  body         String        @db.Text
+  status       MessageStatus @default(SENT)
+  createdAt    DateTime      @default(now())
+
+  connection   Connection    @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  sender       User          @relation("MessageSender", fields: [senderId], references: [id])
+  receiver     User          @relation("MessageReceiver", fields: [receiverId], references: [id])
+
+  @@map("messages")
+}
+
+// ─── FAVORITES & RECENTLY VIEWED ─────────────────────────────────────────────
+
+model Favorite {
+  id          String   @id @default(cuid())
+  userId      String
+  profileId   String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation("FavoriteUser", fields: [userId], references: [id], onDelete: Cascade)
+  profile     User     @relation("FavoritedUser", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, profileId])
+  @@map("favorites")
+}
+
+model RecentlyViewed {
+  id        String   @id @default(cuid())
+  userId    String
+  profileId String
+  viewedAt  DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, profileId])
+  @@map("recently_viewed")
+}
+
+// ─── REPORTS & MODERATION ─────────────────────────────────────────────────────
+
+model Report {
+  id          String       @id @default(cuid())
+  submitterId String
+  targetId    String
+  reason      String
+  details     String?      @db.Text
+  status      ReportStatus @default(OPEN)
+  adminNote   String?
+  resolvedAt  DateTime?
+  createdAt   DateTime     @default(now())
+
+  submitter   User         @relation("ReportSubmitter", fields: [submitterId], references: [id])
+  target      User         @relation("ReportTarget", fields: [targetId], references: [id])
+
+  @@map("reports")
+}
+
+// ─── SITE SETTINGS ────────────────────────────────────────────────────────────
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
