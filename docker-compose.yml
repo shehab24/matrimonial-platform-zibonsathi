@@ -24,6 +24,11 @@ services:
       - "traefik.http.routers.zibonsathi.rule=Host(`zibonsathi-81-17-98-171.sslip.io`)"
       - "traefik.http.routers.zibonsathi.entrypoints=web"
       - "traefik.http.services.zibonsathi.loadbalancer.server.port=3000"
+      - "traefik.http.routers.zibonsathi-secure.rule=Host(`zibonsathi-81-17-98-171.sslip.io`)"
+      - "traefik.http.routers.zibonsathi-secure.entrypoints=websecure"
+      - "traefik.http.routers.zibonsathi-secure.tls=true"
+      - "traefik.http.routers.zibonsathi-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.zibonsathi-secure.service=zibonsathi"
 
   db:
     image: postgres:16-alpine
