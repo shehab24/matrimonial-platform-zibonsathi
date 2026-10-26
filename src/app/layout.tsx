@@ -5,7 +5,7 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { Toaster } from '@/components/ui/toast';
 import SessionProvider from '@/components/auth/session-provider';
-import { auth } from '@/lib/auth';
+
 
 const hindSiliguri = Hind_Siliguri({
   subsets: ['bengali', 'latin'],
@@ -18,9 +18,7 @@ export const metadata: Metadata = {
   description: 'নিরাপদ ইসলামিক বিবাহ সংযোগ প্ল্যাটফর্ম',
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  void session; // used for SSR auth context
+export default function RootLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <html lang="bn" className={`${hindSiliguri.variable} h-full`}>
