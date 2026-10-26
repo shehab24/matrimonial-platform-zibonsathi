@@ -6,6 +6,7 @@ services:
     ports:
       - "3010:3000"
     environment:
+      HOSTNAME: "0.0.0.0"
       DATABASE_URL: ${DATABASE_URL:-postgresql://zibonsathi:zibonsathi@db:5432/zibonsathi}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
