@@ -22,7 +22,7 @@ export async function registerUser(data: {
   try {
     const parsed = registerSchema.safeParse(data);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.errors[0].message };
+      return { success: false, error: parsed.error.issues[0].message };
     }
 
     const existingUser = await prisma.user.findUnique({
