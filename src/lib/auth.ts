@@ -35,7 +35,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user || !user.passwordHash) return null;
         if (user.isSuspended) throw new Error("ACCOUNT_SUSPENDED");
-        if (!user.emailVerified) throw new Error("EMAIL_NOT_VERIFIED");
+        // Email verification disabled until Resend is configured
+        // if (!user.emailVerified) throw new Error("EMAIL_NOT_VERIFIED");
 
         const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
         if (!valid) return null;
