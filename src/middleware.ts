@@ -6,8 +6,10 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const userRole = req.auth?.user?.role;
 
-  // Protect /dashboard/* - must be logged in
-  if (pathname.startsWith('/dashboard') && !isLoggedIn) {
+  // Protect user pages - must be logged in
+  if ((pathname.startsWith('/profile') || pathname.startsWith('/browse') || 
+       pathname.startsWith('/connections') || pathname.startsWith('/messages') || 
+       pathname.startsWith('/credits')) && !isLoggedIn) {
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
@@ -30,7 +32,11 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
+    '/profile/:path*',
+    '/browse/:path*',
+    '/connections/:path*',
+    '/messages/:path*',
+    '/credits/:path*',
     '/admin/:path*',
   ],
 };

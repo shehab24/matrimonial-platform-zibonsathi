@@ -46,7 +46,7 @@ export default function LoginPage() {
 
         toast({ variant: 'destructive', title: 'ত্রুটি', description: errorMsg });
       } else {
-        router.push('/dashboard/profile');
+        router.push('/profile');
         router.refresh();
       }
     } finally {
