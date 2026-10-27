@@ -3,6 +3,7 @@
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ProfileStatus, ReportStatus } from '@prisma/client';
+import { assignBiodataId } from '@/lib/biodata-id';
 
 async function requireAdmin() {
   const session = await auth();
@@ -53,16 +54,20 @@ export async function approveProfile(profileId: string) {
   try {
     const session = await requireAdmin();
 
+    // Assign biodata ID if not already assigned
+    const biodataId = await assignBiodataId(profileId);
+
     await prisma.profile.update({
       where: { id: profileId },
       data: {
         status: ProfileStatus.APPROVED,
         approvedAt: new Date(),
         approvedBy: session.user.id,
+        oderId: biodataId,
       },
     });
 
-    return { success: true };
+    return { success: true, biodataId };
   } catch (error) {
     console.error('approveProfile error:', error);
     return { success: false, error: 'অনুমোদন ব্যর্থ হয়েছে' };

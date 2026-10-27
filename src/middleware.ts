@@ -6,10 +6,17 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const userRole = req.auth?.user?.role;
 
-  // Protect user pages - must be logged in
-  if ((pathname.startsWith('/profile') || pathname.startsWith('/browse') || 
+  // Public routes - no auth required
+  // /browse and /profile/[id] are public for discovery
+  if (pathname.startsWith('/browse') || pathname.match(/^\/profile\/[^/]+$/)) {
+    return NextResponse.next();
+  }
+
+  // Protect user dashboard pages - must be logged in
+  if ((pathname.startsWith('/dashboard') || 
        pathname.startsWith('/connections') || pathname.startsWith('/messages') || 
-       pathname.startsWith('/credits')) && !isLoggedIn) {
+       pathname.startsWith('/credits') || pathname.startsWith('/favorites') ||
+       pathname.startsWith('/settings')) && !isLoggedIn) {
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
@@ -32,11 +39,14 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
-    '/profile/:path*',
     '/browse/:path*',
+    '/profile/:path*',
+    '/dashboard/:path*',
     '/connections/:path*',
     '/messages/:path*',
     '/credits/:path*',
+    '/favorites/:path*',
+    '/settings/:path*',
     '/admin/:path*',
   ],
 };

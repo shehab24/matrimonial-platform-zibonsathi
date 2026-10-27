@@ -25,6 +25,7 @@ export async function GET(
   // Strip contact info by default
   const safeProfile = {
     id: profile.id,
+    oderId: profile.oderId,
     displayName: profile.displayName,
     dateOfBirth: profile.dateOfBirth,
     gender: profile.gender,

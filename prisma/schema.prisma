@@ -96,6 +96,9 @@ model User {
   favorites         Favorite[]   @relation("FavoriteUser")
   favoritedBy       Favorite[]   @relation("FavoritedUser")
 
+  ignoredProfiles   IgnoredProfile[] @relation("IgnoredByUser")
+  ignoredBy         IgnoredProfile[] @relation("IgnoredProfile")
+
   reportsSubmitted  Report[]     @relation("ReportSubmitter")
   reportsReceived   Report[]     @relation("ReportTarget")
 
@@ -166,6 +169,7 @@ model PasswordReset {
 
 model Profile {
   id                  String        @id @default(cuid())
+  oderId              String?       @unique  // Biodata ID: ZBM-00001 or ZBF-00001
   userId              String        @unique
   status              ProfileStatus @default(DRAFT)
 
@@ -384,6 +388,21 @@ model RecentlyViewed {
 
   @@unique([userId, profileId])
   @@map("recently_viewed")
+}
+
+// ─── IGNORED PROFILES ─────────────────────────────────────────────────────────
+
+model IgnoredProfile {
+  id          String   @id @default(cuid())
+  userId      String
+  profileId   String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation("IgnoredByUser", fields: [userId], references: [id], onDelete: Cascade)
+  profile     User     @relation("IgnoredProfile", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, profileId])
+  @@map("ignored_profiles")
 }
 
 // ─── REPORTS & MODERATION ─────────────────────────────────────────────────────

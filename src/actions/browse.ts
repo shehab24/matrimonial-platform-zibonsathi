@@ -1,5 +1,6 @@
 'use server';
 
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ProfileStatus, Gender, MaritalStatus } from '@prisma/client';
 
@@ -16,14 +17,44 @@ interface BrowseFilters {
 }
 
 export async function browseProfiles(filters: BrowseFilters = {}) {
+  const session = await auth();
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = 12;
   const skip = (page - 1) * pageSize;
+
+  // Get ignored profile user IDs if logged in
+  let ignoredUserIds: string[] = [];
+  if (session?.user?.id) {
+    const ignoredProfiles = await prisma.ignoredProfile.findMany({
+      where: { userId: session.user.id },
+      select: { profileId: true },
+    });
+    ignoredUserIds = ignoredProfiles.map(ip => ip.profileId);
+  }
 
   const where: Record<string, unknown> = {
     status: ProfileStatus.APPROVED,
     isVisible: true,
   };
+
+  // Filter out ignored profiles
+  if (ignoredUserIds.length > 0) {
+    where.userId = { notIn: ignoredUserIds };
+  }
+
+  // Also filter out own profile
+  if (session?.user?.id) {
+    if (where.userId) {
+      // Already has userId filter, need to combine
+      where.AND = [
+        { userId: where.userId },
+        { userId: { not: session.user.id } },
+      ];
+      delete where.userId;
+    } else {
+      where.userId = { not: session.user.id };
+    }
+  }
 
   if (filters.gender && ['MALE', 'FEMALE'].includes(filters.gender)) {
     where.gender = filters.gender as Gender;
@@ -76,6 +107,7 @@ export async function browseProfiles(filters: BrowseFilters = {}) {
       orderBy: { approvedAt: 'desc' },
       select: {
         id: true,
+        oderId: true,
         displayName: true,
         dateOfBirth: true,
         gender: true,

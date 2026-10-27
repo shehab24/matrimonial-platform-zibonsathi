@@ -12,6 +12,7 @@ import { MapPin, GraduationCap, Briefcase, User, ChevronLeft, ChevronRight } fro
 
 interface Profile {
   id: string;
+  oderId: string | null;
   displayName: string | null;
   dateOfBirth: string | null;
   gender: string | null;
@@ -175,7 +176,7 @@ export default function BrowsePage() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {profiles.map((profile) => (
-                  <Link key={profile.id} href={`/dashboard/profile/${profile.id}`}>
+                  <Link key={profile.id} href={`/profile/${profile.id}`}>
                     <Card className="hover:shadow-md transition-all cursor-pointer hover:border-green-200">
                       <CardContent className="p-4">
                         {/* Avatar */}
@@ -189,6 +190,9 @@ export default function BrowsePage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-gray-900 truncate">{profile.displayName || 'অজানা'}</p>
+                            {profile.oderId && (
+                              <p className="text-xs text-green-600 font-medium">{profile.oderId}</p>
+                            )}
                             <p className="text-sm text-gray-500">{calcAge(profile.dateOfBirth)}{profile.gender === 'MALE' ? ' • পুরুষ' : profile.gender === 'FEMALE' ? ' • মহিলা' : ''}</p>
                           </div>
                         </div>

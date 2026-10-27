@@ -221,3 +221,40 @@ export async function getContactInfo(profileId: string) {
     return { authorized: false, error: 'যোগাযোগ তথ্য লোড ব্যর্থ হয়েছে' };
   }
 }
+
+export async function checkConnectionStatus(profileId: string) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { success: true, status: null };
+  }
+
+  try {
+    // First get the profile to find the user ID
+    const profile = await prisma.profile.findUnique({
+      where: { id: profileId },
+      select: { userId: true },
+    });
+
+    if (!profile) {
+      return { success: true, status: null };
+    }
+
+    const connection = await prisma.connection.findFirst({
+      where: {
+        OR: [
+          { senderId: session.user.id, receiverId: profile.userId },
+          { senderId: profile.userId, receiverId: session.user.id },
+        ],
+      },
+      select: { status: true },
+    });
+
+    return { 
+      success: true, 
+      status: connection?.status || null 
+    };
+  } catch (error) {
+    console.error('checkConnectionStatus error:', error);
+    return { success: false, status: null };
+  }
+}

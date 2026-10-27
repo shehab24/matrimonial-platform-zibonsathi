@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { Heart, Menu, X, User, LogOut, Settings, CreditCard } from 'lucide-react';
+import { Heart, Menu, X, User, LogOut, Settings, CreditCard, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -16,6 +16,7 @@ export function Navbar() {
   const navLinks = [
     { href: '/', label: 'হোম' },
     { href: '/browse', label: 'প্রোফাইল খুঁজুন' },
+    { href: '/favorites', label: 'পছন্দ' },
     { href: '/dashboard/profile', label: 'আমার প্রোফাইল' },
     { href: '/dashboard/connections', label: 'সংযোগ' },
     { href: '/dashboard/credits', label: 'ক্রেডিট' },
@@ -79,6 +80,14 @@ export function Navbar() {
                     >
                       <User className="h-4 w-4" />
                       আমার প্রোফাইল
+                    </Link>
+                    <Link
+                      href="/favorites"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      <Star className="h-4 w-4" />
+                      পছন্দ তালিকা
                     </Link>
                     <Link
                       href="/dashboard/credits"
