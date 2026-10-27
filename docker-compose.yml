@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3010:3000"
+      - "3000:3000"
     environment:
       HOSTNAME: "0.0.0.0"
       DATABASE_URL: ${DATABASE_URL:-postgresql://zibonsathi:zibonsathi@db:5432/zibonsathi}
@@ -18,25 +18,14 @@ services:
         condition: service_healthy
     networks:
       - zibonsathi_net
-      - dokploy-network
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.zibonsathi.rule=Host(`zibonsathi-81-17-98-171.sslip.io`)"
-      - "traefik.http.routers.zibonsathi.entrypoints=web"
-      - "traefik.http.services.zibonsathi.loadbalancer.server.port=3000"
-      - "traefik.http.routers.zibonsathi-secure.rule=Host(`zibonsathi-81-17-98-171.sslip.io`)"
-      - "traefik.http.routers.zibonsathi-secure.entrypoints=websecure"
-      - "traefik.http.routers.zibonsathi-secure.tls=true"
-      - "traefik.http.routers.zibonsathi-secure.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.zibonsathi-secure.service=zibonsathi"
 
   db:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: zibonsathi
       POSTGRES_USER: zibonsathi
-      POSTGRES_PASSWORD: zibonsathi
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-zibonsathi}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -51,8 +40,6 @@ services:
 networks:
   zibonsathi_net:
     driver: bridge
-  dokploy-network:
-    external: true
 
 volumes:
   postgres_data:
