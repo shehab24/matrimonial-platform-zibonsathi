@@ -89,9 +89,7 @@
     "browse": "Browse biodatas"
   },
   "home": {
-    "heroTitle": "Find a God-fearing life partner",
     "heroSubtitle": "Search verified Islamic biodatas from your own area that match your preferences, completely free.",
-    "hadith": "“When a servant marries, he has completed half of his religion.” — Shu'ab al-Iman, Al-Bayhaqi",
     "statTotal": "Total biodatas",
     "statMale": "Groom biodatas",
     "statFemale": "Bride biodatas",
@@ -111,7 +109,11 @@
     "step4Title": "Get married",
     "step4Body": "Make inquiries as a family and complete the marriage according to the Sunnah.",
     "ayahTranslation": "“And among His signs is that He created for you mates from among yourselves, that you may find tranquillity in them”",
-    "ayahRef": "— Surah Ar-Rum, 30:21"
+    "ayahRef": "— Surah Ar-Rum, 30:21",
+    "heroTitle1": "A trusted place to find",
+    "heroTitle2": "a God-fearing spouse",
+    "hadithText": "When a servant marries, he has completed half of his religion; so let him fear Allah regarding the other half.",
+    "hadithRef": "(Al-Bayhaqi, Shu'ab al-Iman – 5486)"
   },
   "search": {
     "lookingFor": "I'm looking for",
@@ -121,7 +123,8 @@
     "maritalStatus": "Marital status",
     "permanentAddress": "Permanent address",
     "allDivisions": "All divisions",
-    "allFilters": "Show all filters →"
+    "allFilters": "Show all filters →",
+    "searchButton": "Search biodatas"
   },
   "validation": {
     "invalidEmail": "Enter a valid email",
@@ -183,7 +186,32 @@
     "verifyFailedTitle": "Verification failed",
     "verifyExpired": "The token has expired or is invalid.",
     "registerAgain": "Register again",
-    "verifying": "Verifying..."
+    "verifying": "Verifying...",
+    "emailLabel": "Email",
+    "rememberMe": "Remember me",
+    "loginButton": "Log in",
+    "or": "or",
+    "continueWithGoogle": "Continue with Google",
+    "noAccountQ": "Don't have an account?",
+    "createAccount": "Create an account",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "googleNotConfigured": "Google login isn't enabled yet.",
+    "googleFailed": "Couldn't log in with Google. Please try again.",
+    "googleDenied": "This account can't log in. It may be suspended.",
+    "registerHeading": "Create your account",
+    "registerChoose": "Choose how you'd like to sign up.",
+    "orWithEmail": "or with email",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "Enter your full name",
+    "genderIdentity": "Gender",
+    "registerButton": "Create account",
+    "registerWelcome": "Welcome! Your account has been created.",
+    "registerWithEmail": "Sign up with email",
+    "back": "Back",
+    "aboutYou": "Tell us about yourself",
+    "accountDetails": "Set up your login",
+    "stepOf": "Step {current, number} of {total, number}"
   },
   "browse": {
     "title": "Browse Biodatas",

@@ -10,7 +10,7 @@ import { DIVISIONS } from '@/lib/constants';
 
 
 const selectClass =
-  'h-11 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-600';
+  'h-12 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-600';
 
 export function QuickSearch() {
   const t = useTranslations('search');
@@ -33,10 +33,10 @@ export function QuickSearch() {
   };
 
   return (
-    <form onSubmit={onSubmit} className="bg-white rounded-xl shadow-xl p-4 md:p-6 text-left">
+    <form onSubmit={onSubmit} className="bg-white rounded-2xl border border-gray-200 shadow-xl shadow-green-900/5 p-4 md:p-6 text-left">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
         <label className="space-y-1.5">
-          <span className="text-sm font-medium text-gray-700">{t('lookingFor')}</span>
+          <span className="text-sm font-semibold text-gray-800">{t('lookingFor')}</span>
           <select className={selectClass} value={gender} onChange={(e) => setGender(e.target.value)}>
             <option value="">{t('both')}</option>
             <option value="MALE">{t('groomBiodata')}</option>
@@ -44,7 +44,7 @@ export function QuickSearch() {
           </select>
         </label>
         <label className="space-y-1.5">
-          <span className="text-sm font-medium text-gray-700">{t('maritalStatus')}</span>
+          <span className="text-sm font-semibold text-gray-800">{t('maritalStatus')}</span>
           <select className={selectClass} value={maritalStatus} onChange={(e) => setMaritalStatus(e.target.value)}>
             <option value="">{tc('all')}</option>
             <option value="NEVER_MARRIED">{tm('NEVER_MARRIED')}</option>
@@ -53,7 +53,7 @@ export function QuickSearch() {
           </select>
         </label>
         <label className="space-y-1.5">
-          <span className="text-sm font-medium text-gray-700">{t('permanentAddress')}</span>
+          <span className="text-sm font-semibold text-gray-800">{t('permanentAddress')}</span>
           <select className={selectClass} value={division} onChange={(e) => setDivision(e.target.value)}>
             <option value="">{t('allDivisions')}</option>
             {DIVISIONS.map((d) => (
@@ -61,8 +61,8 @@ export function QuickSearch() {
             ))}
           </select>
         </label>
-        <Button type="submit" size="lg" className="h-11 w-full">
-          <Search className="mr-2 h-4 w-4" /> {tc('search')}
+        <Button type="submit" size="lg" className="h-12 w-full rounded-lg shadow-md">
+          <Search className="h-4 w-4" /> {t('searchButton')}
         </Button>
       </div>
       <div className="mt-3 text-right">

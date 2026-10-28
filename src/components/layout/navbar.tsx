@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
-import { Heart, Menu, X, User, LogOut, CreditCard, Star, Link2, MessageCircle, ChevronDown, LayoutGrid, ClipboardCheck, FileText, Users } from 'lucide-react';
+import { Menu, X, User, LogOut, CreditCard, Star, Link2, MessageCircle, ChevronDown, LayoutGrid, ClipboardCheck, FileText, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Logo } from '@/components/layout/logo';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { LanguageToggle } from '@/components/theme/language-toggle';
 import { NotificationBell } from '@/components/notifications/notification-bell';
@@ -77,9 +78,8 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <Heart className="h-6 w-6 text-green-700 fill-green-700" />
-            <span className="text-xl font-bold text-green-700">{tc('brand')}</span>
+          <Link href="/" className="flex items-center shrink-0">
+            <Logo alt={tc('brand')} className="h-9 sm:h-10 w-auto" priority />
           </Link>
 
           {/* Desktop Nav Links */}

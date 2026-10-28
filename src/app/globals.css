@@ -39,6 +39,7 @@ html.dark {
   /* Tinted backgrounds (badges, highlights, hover states) */
   --color-green-50: #10261c;
   --color-green-100: #143323;
+  --color-teal-50: #0d2226;
   --color-red-50: #2a1416;
   --color-red-100: #3a1a1d;
   --color-yellow-100: #33290f;
@@ -83,3 +84,18 @@ html.dark .border-green-200 {
   border-color: #1d4d33;
 }
 
+
+/* Home hero: gentle floating / swaying decorations */
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes hero-sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+.hero-float { animation: hero-float 6s ease-in-out infinite; }
+.hero-sway { animation: hero-sway 7s ease-in-out infinite; transform-origin: top center; }
+@media (prefers-reduced-motion: reduce) {
+  .hero-float, .hero-sway { animation: none; }
+}

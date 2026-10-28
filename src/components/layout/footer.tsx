@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import { Heart, Mail } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { intlLocale } from '@/i18n/config';
 import { CONTACT_EMAIL } from '@/components/layout/content-page';
 import { SOCIAL_LINKS } from '@/lib/constants';
+import { Logo } from '@/components/layout/logo';
 
 // Brand icons (lucide-react no longer ships brand logos)
 const socialIcons = {
@@ -50,9 +51,8 @@ export async function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
           {/* Brand */}
           <div className="col-span-2 md:col-span-3 lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <Heart className="h-6 w-6 text-green-500 fill-green-500" />
-              <span className="text-xl font-bold text-white">{tc('brand')}</span>
+            <Link href="/" className="inline-block mb-4">
+              <Logo alt={tc('brand')} tone="onDark" className="h-11 w-auto" />
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed">{t('tagline')}</p>
             <a href={`mailto:${CONTACT_EMAIL}`} className="mt-4 inline-flex items-center gap-2 text-sm hover:text-green-400 transition-colors break-all">

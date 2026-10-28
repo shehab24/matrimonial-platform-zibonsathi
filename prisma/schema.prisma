@@ -82,6 +82,7 @@ model User {
   emailVerified     DateTime?
   passwordHash      String?
   name              String?
+  image             String?   // profile photo from Google sign-in
   role              Role      @default(USER)
   isSuspended       Boolean   @default(false)
   createdAt         DateTime  @default(now())

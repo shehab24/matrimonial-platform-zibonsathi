@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { intlLocale } from '@/i18n/config';
 import { Button } from '@/components/ui/button';
 import { QuickSearch } from '@/components/home/quick-search';
+import { HeroDecorations } from '@/components/home/hero-decorations';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,16 +48,23 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero + quick search */}
-      <section className="relative bg-gradient-to-br from-green-700 via-green-800 to-teal-900 text-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-28 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold mb-5 leading-tight">{t('heroTitle')}</h1>
-          <p className="text-lg md:text-xl text-white/85 mb-3 max-w-3xl mx-auto">
-            {t('heroSubtitle')}
-          </p>
-          <p className="text-white/75 text-sm md:text-base mb-10 max-w-2xl mx-auto">
-            {t('hadith')}
-          </p>
-          <div className="max-w-5xl mx-auto">
+      <section className="relative overflow-hidden bg-gradient-to-b from-green-50 via-gray-50 to-teal-50">
+        <HeroDecorations />
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-24 pb-32 text-center">
+          <h1 className="font-extrabold leading-[1.15] tracking-tight">
+            <span className="block text-4xl md:text-6xl text-gray-900">{t('heroTitle1')}</span>
+            <span className="mt-2 block text-5xl md:text-7xl bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent dark:from-green-400 dark:via-emerald-400 dark:to-teal-300">
+              {t('heroTitle2')}
+            </span>
+          </h1>
+          <p className="mt-6 text-base md:text-lg text-gray-600 max-w-2xl mx-auto">{t('heroSubtitle')}</p>
+
+          <figure className="mt-8 mx-auto max-w-2xl rounded-2xl border-2 border-dashed border-green-300 bg-white/70 px-6 py-4 shadow-sm backdrop-blur-sm dark:border-green-800 dark:bg-gray-100/60">
+            <blockquote className="text-sm md:text-base text-gray-700">{t('ayahTranslation')}</blockquote>
+            <figcaption className="mt-1.5 text-sm font-semibold text-green-700">{t('ayahRef')}</figcaption>
+          </figure>
+
+          <div className="mt-10 max-w-5xl mx-auto">
             <QuickSearch />
           </div>
         </div>
@@ -117,12 +125,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Ayah */}
+      {/* Hadith (the Ar-Rum 30:21 ayah is shown in the hero) */}
       <section className="py-16 bg-green-700 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <p className="text-2xl md:text-3xl font-light mb-4 leading-relaxed" dir="rtl">وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَاجًا لِّتَسْكُنُوا إِلَيْهَا</p>
-          <p className="text-white/75 text-lg">{t('ayahTranslation')}</p>
-          <p className="text-white/60 text-sm mt-2">{t('ayahRef')}</p>
+          <p className="text-xl md:text-2xl leading-relaxed">{t('hadithText')}</p>
+          <p className="text-white/70 text-sm mt-3">{t('hadithRef')}</p>
         </div>
       </section>
     </div>
