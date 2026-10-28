@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslations } from 'next-intl';
 import { Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,13 +16,13 @@ import { toast } from '@/hooks/use-toast';
 import { registerUser } from '@/actions/auth';
 
 const registerSchema = z.object({
-  name: z.string().min(2, 'নাম কমপক্ষে ২ অক্ষরের হতে হবে'),
-  email: z.string().email('সঠিক ইমেইল দিন'),
-  password: z.string().min(8, 'পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে'),
+  name: z.string().min(2, 'nameMin'),
+  email: z.string().email('invalidEmail'),
+  password: z.string().min(8, 'passwordMin'),
   confirmPassword: z.string(),
-  gender: z.enum(['MALE', 'FEMALE'], { message: 'লিঙ্গ নির্বাচন করুন' }),
+  gender: z.enum(['MALE', 'FEMALE'], { message: 'genderRequired' }),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: 'পাসওয়ার্ড মিলছে না',
+  message: 'passwordMismatch',
   path: ['confirmPassword'],
 });
 
@@ -29,6 +30,9 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslations('auth');
+  const tv = useTranslations('validation');
+  const tc = useTranslations('common');
   const [isLoading, setIsLoading] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
@@ -48,12 +52,12 @@ export default function RegisterPage() {
       if (result.success) {
         toast({
           variant: 'success',
-          title: 'সফল!',
-          description: 'নিবন্ধন সম্পন্ন। আপনার ইমেইল যাচাই করুন।',
+          title: tc('success'),
+          description: t('registerSuccess'),
         });
         router.push('/login');
       } else {
-        toast({ variant: 'destructive', title: 'ত্রুটি', description: result.error });
+        toast({ variant: 'destructive', title: tc('error'), description: result.error });
       }
     } finally {
       setIsLoading(false);
@@ -69,63 +73,63 @@ export default function RegisterPage() {
               <Heart className="h-8 w-8 text-white fill-white" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">জীবনসাথী</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{tc('brand')}</h1>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>নিবন্ধন করুন</CardTitle>
-            <CardDescription>একটি নতুন অ্যাকাউন্ট তৈরি করুন</CardDescription>
+            <CardTitle>{t('register')}</CardTitle>
+            <CardDescription>{t('registerSubtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">নাম</Label>
-                <Input id="name" placeholder="আপনার পূর্ণ নাম" {...register('name')} />
-                {errors.name && <p className="text-sm text-red-600">{errors.name.message}</p>}
+                <Label htmlFor="name">{t('name')}</Label>
+                <Input id="name" placeholder={t('namePlaceholder')} {...register('name')} />
+                {errors.name && <p className="text-sm text-red-600">{tv(errors.name.message ?? '')}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">ইমেইল</Label>
-                <Input id="email" type="email" placeholder="আপনার ইমেইল" {...register('email')} />
-                {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+                <Label htmlFor="email">{t('email')}</Label>
+                <Input id="email" type="email" placeholder={t('emailPlaceholder')} {...register('email')} />
+                {errors.email && <p className="text-sm text-red-600">{tv(errors.email.message ?? '')}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">পাসওয়ার্ড</Label>
-                <Input id="password" type="password" placeholder="কমপক্ষে ৮ অক্ষর" {...register('password')} />
-                {errors.password && <p className="text-sm text-red-600">{errors.password.message}</p>}
+                <Label htmlFor="password">{t('password')}</Label>
+                <Input id="password" type="password" placeholder={t('passwordMinPlaceholder')} {...register('password')} />
+                {errors.password && <p className="text-sm text-red-600">{tv(errors.password.message ?? '')}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">পাসওয়ার্ড নিশ্চিত করুন</Label>
-                <Input id="confirmPassword" type="password" placeholder="পাসওয়ার্ড পুনরায় দিন" {...register('confirmPassword')} />
-                {errors.confirmPassword && <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>}
+                <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
+                <Input id="confirmPassword" type="password" placeholder={t('confirmPasswordPlaceholder')} {...register('confirmPassword')} />
+                {errors.confirmPassword && <p className="text-sm text-red-600">{tv(errors.confirmPassword.message ?? '')}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label>লিঙ্গ</Label>
+                <Label>{t('gender')}</Label>
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" value="MALE" {...register('gender')} className="text-green-700" />
-                    <span className="text-sm">পুরুষ</span>
+                    <span className="text-sm">{tc('male')}</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" value="FEMALE" {...register('gender')} className="text-green-700" />
-                    <span className="text-sm">মহিলা</span>
+                    <span className="text-sm">{tc('female')}</span>
                   </label>
                 </div>
-                {errors.gender && <p className="text-sm text-red-600">{errors.gender.message}</p>}
+                {errors.gender && <p className="text-sm text-red-600">{tv(errors.gender.message ?? '')}</p>}
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'নিবন্ধন হচ্ছে...' : 'নিবন্ধন করুন'}
+                {isLoading ? t('registering') : t('register')}
               </Button>
             </form>
 
             <p className="text-center text-sm text-gray-600 mt-4">
-              ইতিমধ্যে অ্যাকাউন্ট আছে?{' '}
-              <Link href="/login" className="text-green-700 hover:underline font-medium">লগইন করুন</Link>
+              {t('haveAccount')}{' '}
+              <Link href="/login" className="text-green-700 hover:underline font-medium">{t('loginTitle')}</Link>
             </p>
           </CardContent>
         </Card>

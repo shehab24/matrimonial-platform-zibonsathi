@@ -2,12 +2,13 @@
 
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { actionError } from '@/lib/action-error';
 import { ProfileStatus } from '@prisma/client';
 
 export async function getMyProfile() {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'অনুমোদিত নয়' };
+    return { success: false, error: await actionError('notAuthorized') };
   }
 
   const profile = await prisma.profile.findUnique({
@@ -16,7 +17,7 @@ export async function getMyProfile() {
   });
 
   if (!profile) {
-    return { success: false, error: 'প্রোফাইল পাওয়া যায়নি' };
+    return { success: false, error: await actionError('profileNotFound') };
   }
 
   return { success: true, profile };
@@ -55,7 +56,7 @@ export async function upsertProfile(data: {
 }) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'অনুমোদিত নয়' };
+    return { success: false, error: await actionError('notAuthorized') };
   }
 
   try {
@@ -86,14 +87,14 @@ export async function upsertProfile(data: {
     return { success: true, profile };
   } catch (error) {
     console.error('upsertProfile error:', error);
-    return { success: false, error: 'প্রোফাইল সংরক্ষণ ব্যর্থ হয়েছে' };
+    return { success: false, error: await actionError('profileSaveFailed') };
   }
 }
 
 export async function submitForApproval() {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'অনুমোদিত নয়' };
+    return { success: false, error: await actionError('notAuthorized') };
   }
 
   try {
@@ -102,11 +103,11 @@ export async function submitForApproval() {
     });
 
     if (!profile) {
-      return { success: false, error: 'প্রোফাইল পাওয়া যায়নি' };
+      return { success: false, error: await actionError('profileNotFound') };
     }
 
     if (profile.status === ProfileStatus.PENDING_APPROVAL) {
-      return { success: false, error: 'প্রোফাইল ইতিমধ্যে পর্যালোচনার অপেক্ষায় আছে' };
+      return { success: false, error: await actionError('alreadyPending') };
     }
 
     await prisma.profile.update({
@@ -117,7 +118,7 @@ export async function submitForApproval() {
     return { success: true };
   } catch (error) {
     console.error('submitForApproval error:', error);
-    return { success: false, error: 'জমা দেওয়া ব্যর্থ হয়েছে' };
+    return { success: false, error: await actionError('submitFailed') };
   }
 }
 
@@ -130,7 +131,7 @@ export async function getPublicProfile(id: string) {
   });
 
   if (!profile || profile.status !== ProfileStatus.APPROVED || !profile.isVisible) {
-    return { success: false, error: 'প্রোফাইল পাওয়া যায়নি' };
+    return { success: false, error: await actionError('profileNotFound') };
   }
 
   // Strip contact info by default

@@ -10,11 +10,16 @@
     "postinstall": "echo 'prisma generate runs in Docker builder stage'",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:dummy": "tsx prisma/seed-dummy.ts",
+    "db:clear:dummy": "tsx prisma/seed-dummy.ts --clear",
+    "admin:create": "tsx prisma/make-admin.ts",
     "db:generate": "prisma generate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
     "@hookform/resolvers": "^6.0.0",
+    "@neon/config": "^1.9.5",
+    "@neon/env": "^1.6.6",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-avatar": "^1.3.1",
     "@radix-ui/react-checkbox": "^1.4.1",

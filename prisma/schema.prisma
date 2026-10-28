@@ -4,7 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 // ─── ENUMS ────────────────────────────────────────────────────────────────────
@@ -58,6 +59,15 @@ enum MessageStatus {
   READ
 }
 
+enum NotificationType {
+  FAVORITED
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  CONNECTION_REJECTED
+  PROFILE_APPROVED
+  PROFILE_REJECTED
+}
+
 enum ReportStatus {
   OPEN
   RESOLVED
@@ -103,6 +113,7 @@ model User {
   reportsReceived   Report[]     @relation("ReportTarget")
 
   recentlyViewed    RecentlyViewed[]
+  notifications     Notification[]
 
   @@map("users")
 }
@@ -235,6 +246,7 @@ model Profile {
   connectionsAsSender Connection[]  @relation("ConnectionSenderProfile")
   connectionsAsReceiver Connection[] @relation("ConnectionReceiverProfile")
   recentlyViewedBy    RecentlyViewed[]
+  notificationsCaused Notification[] @relation("NotificationActor")
 
   @@map("profiles")
 }
@@ -422,6 +434,23 @@ model Report {
   target      User         @relation("ReportTarget", fields: [targetId], references: [id])
 
   @@map("reports")
+}
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+model Notification {
+  id             String           @id @default(cuid())
+  userId         String           // recipient
+  type           NotificationType
+  actorProfileId String?          // profile that triggered it (null for system events)
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actorProfile   Profile?         @relation("NotificationActor", fields: [actorProfileId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("notifications")
 }
 
 // ─── SITE SETTINGS ────────────────────────────────────────────────────────────

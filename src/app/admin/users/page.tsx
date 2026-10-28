@@ -41,11 +41,11 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (isLoading) return <div className="p-8 text-gray-500">লোড হচ্ছে...</div>;
+  if (isLoading) return <div className="py-16 text-center text-gray-500">লোড হচ্ছে...</div>;
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
+    <div>
+      <div className="mb-6 bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-5">
         <h1 className="text-2xl font-bold text-gray-900">ব্যবহারকারী</h1>
         <p className="text-gray-500 mt-1">মোট {users.length} জন ব্যবহারকারী</p>
       </div>

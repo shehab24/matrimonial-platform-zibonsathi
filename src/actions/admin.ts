@@ -4,11 +4,12 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ProfileStatus, ReportStatus } from '@prisma/client';
 import { assignBiodataId } from '@/lib/biodata-id';
+import { notify } from '@/lib/notifications';
 
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== 'ADMIN') {
-    throw new Error('관리자 권한이 필요합니다');
+    throw new Error('ADMIN_REQUIRED');
   }
   return session;
 }
@@ -57,7 +58,7 @@ export async function approveProfile(profileId: string) {
     // Assign biodata ID if not already assigned
     const biodataId = await assignBiodataId(profileId);
 
-    await prisma.profile.update({
+    const profile = await prisma.profile.update({
       where: { id: profileId },
       data: {
         status: ProfileStatus.APPROVED,
@@ -66,6 +67,8 @@ export async function approveProfile(profileId: string) {
         oderId: biodataId,
       },
     });
+
+    await notify(profile.userId, 'PROFILE_APPROVED');
 
     return { success: true, biodataId };
   } catch (error) {
@@ -78,7 +81,7 @@ export async function rejectProfile(profileId: string, reason: string) {
   try {
     await requireAdmin();
 
-    await prisma.profile.update({
+    const profile = await prisma.profile.update({
       where: { id: profileId },
       data: {
         status: ProfileStatus.REJECTED,
@@ -86,10 +89,29 @@ export async function rejectProfile(profileId: string, reason: string) {
       },
     });
 
+    await notify(profile.userId, 'PROFILE_REJECTED');
+
     return { success: true };
   } catch (error) {
     console.error('rejectProfile error:', error);
     return { success: false, error: 'প্রত্যাখ্যান ব্যর্থ হয়েছে' };
+  }
+}
+
+export async function suspendProfile(profileId: string, reason: string) {
+  try {
+    await requireAdmin();
+
+    // Hides the biodata from browse; approving it again restores it
+    await prisma.profile.update({
+      where: { id: profileId },
+      data: { status: ProfileStatus.SUSPENDED, adminNote: reason || null },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('suspendProfile error:', error);
+    return { success: false, error: 'স্থগিত করা ব্যর্থ হয়েছে' };
   }
 }
 

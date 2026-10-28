@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,18 +60,15 @@ function calcAge(dob: string | null): number | null {
   return today.getFullYear() - birth.getFullYear();
 }
 
-const maritalLabels: Record<string, string> = {
-  NEVER_MARRIED: 'অবিবাহিত',
-  DIVORCED: 'তালাকপ্রাপ্ত',
-  WIDOWED: 'বিধবা/বিপত্নীক',
-};
-
-const genderLabels: Record<string, string> = {
-  MALE: 'পুরুষ',
-  FEMALE: 'মহিলা',
-};
-
 export default function ProfileDetailPage() {
+  const t = useTranslations('biodata');
+  const tc = useTranslations('common');
+  const tm = useTranslations('maritalStatus');
+  const td = useTranslations('divisions');
+  const to = useTranslations('options');
+  // Translate stored Bengali option values for display; free text is shown as entered
+  const opt = (value: string | null) => (value && to.has(value) ? to(value) : value);
+  const genderLabel = (gender: string) => (gender === 'MALE' ? tc('male') : gender === 'FEMALE' ? tc('female') : gender);
   const params = useParams();
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
@@ -91,12 +89,12 @@ export default function ProfileDetailPage() {
         const res = await fetch(`/api/profile/${profileId}`);
         const data = await res.json();
         if (!res.ok) {
-          setError(data.error || 'প্রোফাইল লোড করতে সমস্যা হয়েছে');
+          setError(data.error || t('loadError'));
         } else {
           setProfile(data.profile);
         }
       } catch {
-        setError('সার্ভারে সমস্যা হয়েছে');
+        setError(t('serverError'));
       } finally {
         setLoading(false);
       }
@@ -164,7 +162,7 @@ export default function ProfileDetailPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
         <Loader2 className="h-8 w-8 animate-spin text-green-600 mx-auto" />
-        <p className="mt-4 text-gray-500">প্রোফাইল লোড হচ্ছে...</p>
+        <p className="mt-4 text-gray-500">{t('loading')}</p>
       </div>
     );
   }
@@ -173,10 +171,10 @@ export default function ProfileDetailPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
         <User className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-        <h1 className="text-xl font-semibold text-gray-900 mb-2">প্রোফাইল পাওয়া যায়নি</h1>
-        <p className="text-gray-500 mb-6">{error || 'এই প্রোফাইলটি বিদ্যমান নেই বা মুছে ফেলা হয়েছে'}</p>
+        <h1 className="text-xl font-semibold text-gray-900 mb-2">{t('notFound')}</h1>
+        <p className="text-gray-500 mb-6">{error || t('notFoundBody')}</p>
         <Link href="/browse">
-          <Button><ArrowLeft className="h-4 w-4 mr-2" /> ব্রাউজে ফিরুন</Button>
+          <Button><ArrowLeft className="h-4 w-4 mr-2" /> {t('backToBrowse')}</Button>
         </Link>
       </div>
     );
@@ -191,7 +189,7 @@ export default function ProfileDetailPage() {
       <div className="mb-6">
         <Link href="/browse" className="inline-flex items-center text-gray-600 hover:text-green-600 transition-colors">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          সব প্রোফাইল দেখুন
+          {t('allProfiles')}
         </Link>
       </div>
 
@@ -216,11 +214,11 @@ export default function ProfileDetailPage() {
                   </Badge>
                 )}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold">{profile.displayName || 'নাম দেওয়া হয়নি'}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">{profile.displayName || t('noName')}</h1>
               <p className="text-white/80 mt-1">
-                {age && `${age} বছর`}
-                {profile.gender && ` • ${genderLabels[profile.gender] || profile.gender}`}
-                {profile.maritalStatus && ` • ${maritalLabels[profile.maritalStatus] || profile.maritalStatus}`}
+                {age && tc('years', { age })}
+                {profile.gender && ` • ${genderLabel(profile.gender)}`}
+                {profile.maritalStatus && ` • ${tm(profile.maritalStatus)}`}
               </p>
               {(profile.district || profile.division) && (
                 <p className="text-white/70 text-sm mt-1 flex items-center gap-1">
@@ -247,7 +245,7 @@ export default function ProfileDetailPage() {
               ) : (
                 <Star className={`h-4 w-4 mr-2 ${isFavorite ? 'fill-current' : ''}`} />
               )}
-              {isFavorite ? 'পছন্দে আছে' : 'পছন্দে রাখুন'}
+              {isFavorite ? t('inFavorites') : t('addFavorite')}
             </Button>
 
             <Button
@@ -261,7 +259,7 @@ export default function ProfileDetailPage() {
               ) : (
                 <Ban className="h-4 w-4 mr-2" />
               )}
-              {isIgnored ? 'উপেক্ষা করা হয়েছে' : 'উপেক্ষা করুন'}
+              {isIgnored ? t('ignored') : t('ignore')}
             </Button>
 
             {connectionStatus === null && (
@@ -276,14 +274,14 @@ export default function ProfileDetailPage() {
                 ) : (
                   <Send className="h-4 w-4 mr-2" />
                 )}
-                যোগাযোগের অনুরোধ
+                {t('requestContact')}
               </Button>
             )}
 
             {connectionStatus === 'PENDING' && (
               <Button size="sm" variant="secondary" disabled>
                 <Loader2 className="h-4 w-4 mr-2" />
-                অনুরোধ পাঠানো হয়েছে
+                {t('requestSent')}
               </Button>
             )}
 
@@ -291,7 +289,7 @@ export default function ProfileDetailPage() {
               <Link href={`/messages?profile=${profileId}`}>
                 <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  মেসেজ করুন
+                  {t('message')}
                 </Button>
               </Link>
             )}
@@ -306,19 +304,19 @@ export default function ProfileDetailPage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <User className="h-5 w-5 text-green-600" />
-              প্রাথমিক তথ্য
+              {t('basicInfo')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <InfoRow label="বায়োডাটা নং" value={profile.oderId} />
-            <InfoRow label="বয়স" value={age ? `${age} বছর` : null} />
-            <InfoRow label="লিঙ্গ" value={profile.gender ? genderLabels[profile.gender] : null} />
-            <InfoRow label="বৈবাহিক অবস্থা" value={profile.maritalStatus ? maritalLabels[profile.maritalStatus] : null} />
+            <InfoRow label={t('biodataNo')} value={profile.oderId} />
+            <InfoRow label={t('age')} value={age ? tc('years', { age }) : null} />
+            <InfoRow label={t('gender')} value={profile.gender ? genderLabel(profile.gender) : null} />
+            <InfoRow label={t('maritalStatus')} value={profile.maritalStatus ? tm(profile.maritalStatus) : null} />
             {profile.numberOfChildren !== null && profile.numberOfChildren > 0 && (
-              <InfoRow label="সন্তান সংখ্যা" value={`${profile.numberOfChildren} জন`} />
+              <InfoRow label={t('children')} value={t('persons', { count: profile.numberOfChildren })} />
             )}
-            <InfoRow label="ধর্ম" value={profile.religion} />
-            <InfoRow label="মাযহাব" value={profile.mazhab} />
+            <InfoRow label={t('religion')} value={opt(profile.religion)} />
+            <InfoRow label={t('mazhab')} value={opt(profile.mazhab)} />
           </CardContent>
         </Card>
 
@@ -327,14 +325,14 @@ export default function ProfileDetailPage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <MapPin className="h-5 w-5 text-green-600" />
-              ঠিকানা
+              {t('address')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <InfoRow label="দেশ" value={profile.country || 'বাংলাদেশ'} />
-            <InfoRow label="বিভাগ" value={profile.division} />
-            <InfoRow label="জেলা" value={profile.district} />
-            <InfoRow label="উপজেলা" value={profile.upazila} />
+            <InfoRow label={t('country')} value={opt(profile.country) || t('bangladesh')} />
+            <InfoRow label={t('division')} value={profile.division && td.has(profile.division) ? td(profile.division) : profile.division} />
+            <InfoRow label={t('district')} value={profile.district} />
+            <InfoRow label={t('upazila')} value={profile.upazila} />
           </CardContent>
         </Card>
 
@@ -343,19 +341,19 @@ export default function ProfileDetailPage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-green-600" />
-              শিক্ষা ও পেশা
+              {t('educationOccupation')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <InfoRow label="শিক্ষাগত যোগ্যতা" value={profile.education} />
+            <InfoRow label={t('education')} value={opt(profile.education)} />
             {profile.educationDetails && (
-              <InfoRow label="বিস্তারিত" value={profile.educationDetails} />
+              <InfoRow label={t('details')} value={profile.educationDetails} />
             )}
-            <InfoRow label="পেশা" value={profile.occupation} />
+            <InfoRow label={t('occupation')} value={opt(profile.occupation)} />
             {profile.occupationDetails && (
-              <InfoRow label="পেশার বিস্তারিত" value={profile.occupationDetails} />
+              <InfoRow label={t('occupationDetails')} value={profile.occupationDetails} />
             )}
-            <InfoRow label="মাসিক আয়" value={profile.monthlyIncome} />
+            <InfoRow label={t('monthlyIncome')} value={opt(profile.monthlyIncome)} />
           </CardContent>
         </Card>
 
@@ -364,15 +362,15 @@ export default function ProfileDetailPage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Users className="h-5 w-5 text-green-600" />
-              পারিবারিক তথ্য
+              {t('familyInfo')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <InfoRow label="বাবা" value={profile.fatherAlive === true ? 'জীবিত' : profile.fatherAlive === false ? 'মৃত' : null} />
-            <InfoRow label="মা" value={profile.motherAlive === true ? 'জীবিত' : profile.motherAlive === false ? 'মৃত' : null} />
-            <InfoRow label="ভাই-বোন" value={profile.siblings !== null ? `${profile.siblings} জন` : null} />
-            <InfoRow label="পরিবারের ধরন" value={profile.familyType} />
-            <InfoRow label="পারিবারিক অবস্থা" value={profile.familyStatus} />
+            <InfoRow label={t('father')} value={profile.fatherAlive === true ? t('alive') : profile.fatherAlive === false ? t('deceased') : null} />
+            <InfoRow label={t('mother')} value={profile.motherAlive === true ? t('alive') : profile.motherAlive === false ? t('deceased') : null} />
+            <InfoRow label={t('siblings')} value={profile.siblings !== null ? t('persons', { count: profile.siblings }) : null} />
+            <InfoRow label={t('familyType')} value={opt(profile.familyType)} />
+            <InfoRow label={t('familyStatus')} value={opt(profile.familyStatus)} />
           </CardContent>
         </Card>
 
@@ -381,13 +379,13 @@ export default function ProfileDetailPage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-green-600" />
-              ধর্মীয় তথ্য
+              {t('religiousInfo')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <InfoRow label="নামাজ" value={profile.prayerHabit} />
-            <InfoRow label={profile.gender === 'MALE' ? 'দাড়ি' : 'পর্দা/হিজাব'} value={profile.beardOrHijab} />
-            <InfoRow label="মাযহাব" value={profile.mazhab} />
+            <InfoRow label={t('prayer')} value={opt(profile.prayerHabit)} />
+            <InfoRow label={profile.gender === 'MALE' ? t('beard') : t('hijab')} value={opt(profile.beardOrHijab)} />
+            <InfoRow label={t('mazhab')} value={opt(profile.mazhab)} />
           </CardContent>
         </Card>
 
@@ -397,12 +395,12 @@ export default function ProfileDetailPage() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2 text-green-700">
                 <Phone className="h-5 w-5" />
-                যোগাযোগ (সংযুক্ত)
+                {t('contactConnected')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {profile.phoneNumber && <InfoRow label="মোবাইল" value={profile.phoneNumber} />}
-              {profile.guardianPhone && <InfoRow label="অভিভাবক" value={profile.guardianPhone} />}
+              {profile.phoneNumber && <InfoRow label={t('mobile')} value={profile.phoneNumber} />}
+              {profile.guardianPhone && <InfoRow label={t('guardian')} value={profile.guardianPhone} />}
             </CardContent>
           </Card>
         )}
@@ -414,7 +412,7 @@ export default function ProfileDetailPage() {
           {profile.aboutMe && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">নিজের সম্পর্কে</CardTitle>
+                <CardTitle className="text-lg">{t('aboutMe')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 whitespace-pre-wrap">{profile.aboutMe}</p>
@@ -424,7 +422,7 @@ export default function ProfileDetailPage() {
           {profile.partnerPreferences && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">জীবনসঙ্গীর পছন্দ</CardTitle>
+                <CardTitle className="text-lg">{t('partnerPreferences')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 whitespace-pre-wrap">{profile.partnerPreferences}</p>
@@ -439,17 +437,17 @@ export default function ProfileDetailPage() {
         <Card className="mt-8 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
           <CardContent className="p-6 text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              এই প্রোফাইলে আগ্রহী?
+              {t('interested')}
             </h3>
             <p className="text-gray-600 mb-4">
-              যোগাযোগের অনুরোধ পাঠাতে বা পছন্দে যোগ করতে লগইন করুন
+              {t('loginPrompt')}
             </p>
             <div className="flex justify-center gap-3">
               <Link href={`/login?callbackUrl=/profile/${profileId}`}>
-                <Button className="bg-green-600 hover:bg-green-700">লগইন করুন</Button>
+                <Button className="bg-green-600 hover:bg-green-700">{t('login')}</Button>
               </Link>
               <Link href="/register">
-                <Button variant="outline">রেজিস্ট্রার করুন</Button>
+                <Button variant="outline">{t('register')}</Button>
               </Link>
             </div>
           </CardContent>

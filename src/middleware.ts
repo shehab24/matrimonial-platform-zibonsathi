@@ -13,10 +13,11 @@ export default auth((req) => {
   }
 
   // Protect user dashboard pages - must be logged in
-  if ((pathname.startsWith('/dashboard') || 
-       pathname.startsWith('/connections') || pathname.startsWith('/messages') || 
+  if ((pathname === '/profile' ||
+       pathname.startsWith('/connections') || pathname.startsWith('/dashboard') ||
+       pathname.startsWith('/ignored') || pathname.startsWith('/liked-me') || pathname.startsWith('/messages') || 
        pathname.startsWith('/credits') || pathname.startsWith('/favorites') ||
-       pathname.startsWith('/settings')) && !isLoggedIn) {
+       pathname.startsWith('/settings') || pathname.startsWith('/notifications')) && !isLoggedIn) {
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
@@ -41,12 +42,15 @@ export const config = {
   matcher: [
     '/browse/:path*',
     '/profile/:path*',
-    '/dashboard/:path*',
     '/connections/:path*',
     '/messages/:path*',
     '/credits/:path*',
     '/favorites/:path*',
     '/settings/:path*',
+    '/dashboard/:path*',
+    '/ignored/:path*',
+    '/liked-me/:path*',
+    '/notifications/:path*',
     '/admin/:path*',
   ],
 };

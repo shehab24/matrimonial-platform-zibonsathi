@@ -1,95 +1,128 @@
 import Link from 'next/link';
-import { Heart, Shield, Lock, Users, CheckCircle, ArrowRight } from 'lucide-react';
+import { UserPlus, Search, Phone, HeartHandshake, ArrowRight, Users, User, UserRound, Heart } from 'lucide-react';
+import { Gender, ProfileStatus, ConnectionStatus } from '@prisma/client';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { prisma } from '@/lib/prisma';
+import { intlLocale } from '@/i18n/config';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { QuickSearch } from '@/components/home/quick-search';
 
-export default function HomePage() {
-  const features = [
-    { icon: Shield, title: 'নিরাপদ ও বিশ্বস্ত', description: 'সকল প্রোফাইল যাচাই করা হয়। আপনার নিরাপত্তা আমাদের সর্বোচ্চ অগ্রাধিকার।', color: 'text-green-700', bg: 'bg-green-50' },
-    { icon: Lock, title: 'গোপনীয়তা সুরক্ষিত', description: 'আপনার যোগাযোগের তথ্য সম্পূর্ণ নিরাপদ। শুধুমাত্র সংযুক্ত ব্যক্তিরা দেখতে পাবেন।', color: 'text-teal-700', bg: 'bg-teal-50' },
-    { icon: Users, title: 'পরিবারের সম্পৃক্ততা', description: 'পরিবারের সাথে মিলে সিদ্ধান্ত নেওয়ার সুযোগ। অভিভাবকের যোগাযোগ তথ্য যুক্ত করুন।', color: 'text-blue-700', bg: 'bg-blue-50' },
-    { icon: CheckCircle, title: 'যাচাইকৃত প্রোফাইল', description: 'প্রতিটি প্রোফাইল আমাদের দল কর্তৃক যাচাই করা হয় প্রকাশের আগে।', color: 'text-purple-700', bg: 'bg-purple-50' },
+export const dynamic = 'force-dynamic';
+
+async function getStats() {
+  try {
+    const approved = { status: ProfileStatus.APPROVED };
+    const [total, male, female, matches] = await Promise.all([
+      prisma.profile.count({ where: approved }),
+      prisma.profile.count({ where: { ...approved, gender: Gender.MALE } }),
+      prisma.profile.count({ where: { ...approved, gender: Gender.FEMALE } }),
+      prisma.connection.count({ where: { status: ConnectionStatus.ACCEPTED } }),
+    ]);
+    return { total, male, female, matches };
+  } catch (error) {
+    console.error('home stats error:', error);
+    return { total: 0, male: 0, female: 0, matches: 0 };
+  }
+}
+
+export default async function HomePage() {
+  const stats = await getStats();
+  const t = await getTranslations('home');
+  const nf = new Intl.NumberFormat(intlLocale(await getLocale()));
+
+  const statCards = [
+    { label: t('statTotal'), value: stats.total, icon: Users },
+    { label: t('statMale'), value: stats.male, icon: User },
+    { label: t('statFemale'), value: stats.female, icon: UserRound },
+    { label: t('statMatches'), value: stats.matches, icon: Heart },
   ];
 
   const steps = [
-    { step: '০১', title: 'নিবন্ধন করুন', description: 'বিনামূল্যে অ্যাকাউন্ট তৈরি করুন এবং ইমেইল যাচাই করুন।' },
-    { step: '০২', title: 'প্রোফাইল তৈরি করুন', description: 'আপনার বায়োডাটা পূরণ করুন এবং অনুমোদনের জন্য জমা দিন।' },
-    { step: '০৩', title: 'সংযোগ স্থাপন করুন', description: 'পছন্দের প্রার্থীকে সংযোগ অনুরোধ পাঠান এবং কথা বলুন।' },
+    { icon: UserPlus, title: t('step1Title'), description: t('step1Body') },
+    { icon: Search, title: t('step2Title'), description: t('step2Body') },
+    { icon: Phone, title: t('step3Title'), description: t('step3Body') },
+    { icon: HeartHandshake, title: t('step4Title'), description: t('step4Body') },
   ];
 
   return (
     <div className="min-h-screen">
-      <section className="relative bg-gradient-to-br from-green-700 via-green-800 to-teal-900 text-white overflow-hidden">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="bg-white/20 rounded-full p-4">
-              <Heart className="h-12 w-12 text-white fill-white" />
+      {/* Hero + quick search */}
+      <section className="relative bg-gradient-to-br from-green-700 via-green-800 to-teal-900 text-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-28 text-center">
+          <h1 className="text-4xl md:text-6xl font-bold mb-5 leading-tight">{t('heroTitle')}</h1>
+          <p className="text-lg md:text-xl text-white/85 mb-3 max-w-3xl mx-auto">
+            {t('heroSubtitle')}
+          </p>
+          <p className="text-white/75 text-sm md:text-base mb-10 max-w-2xl mx-auto">
+            {t('hadith')}
+          </p>
+          <div className="max-w-5xl mx-auto">
+            <QuickSearch />
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="relative -mt-14 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
+          {statCards.map(({ label, value, icon: Icon }) => (
+            <div key={label} className="bg-white rounded-xl border border-gray-200 shadow-md p-5 text-center">
+              <Icon className="h-7 w-7 text-green-700 mx-auto mb-2" />
+              <p className="text-2xl md:text-3xl font-bold text-gray-900">{nf.format(value)}</p>
+              <p className="text-sm text-gray-500 mt-1">{label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Create biodata CTA */}
+      <section className="py-16">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="rounded-2xl bg-green-50 border border-green-100 p-8 md:p-10 flex flex-col md:flex-row items-center gap-6 justify-between">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{t('ctaTitle')}</h2>
+              <p className="text-gray-600 mt-2">{t('ctaBody')}</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+              <Button size="lg" asChild>
+                <Link href="/register">{t('ctaButton')} <ArrowRight className="ml-2 h-5 w-5" /></Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild>
+                <Link href="/guide">{t('ctaHow')}</Link>
+              </Button>
             </div>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">আপনার জীবনসাথী খুঁজুন</h1>
-          <p className="text-xl md:text-2xl text-green-100 mb-4 max-w-3xl mx-auto">ইসলামিক মূল্যবোধ বজায় রেখে আপনার উপযুক্ত জীবনসঙ্গী খুঁজুন</p>
-          <p className="text-green-200 text-lg mb-10">নিরাপদ • বিশ্বস্ত • যাচাইকৃত</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" asChild className="text-green-800 font-semibold">
-              <Link href="/browse">প্রোফাইল খুঁজুন <ArrowRight className="ml-2 h-5 w-5" /></Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild className="border-white text-white hover:bg-white/10 hover:text-white">
-              <Link href="/register">নিবন্ধন করুন</Link>
-            </Button>
-          </div>
         </div>
       </section>
 
-      <section className="py-20 bg-white">
+      {/* How it works */}
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">কেন জীবনসাথী বেছে নেবেন?</h2>
-            <p className="text-lg text-gray-500 max-w-2xl mx-auto">আমরা বিশ্বাস করি প্রতিটি মুসলিম পরিবার একটি সুখী ও হালাল বিবাহের যোগ্য।</p>
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">{t('howTitle')}</h2>
+            <p className="text-lg text-gray-500">{t('howSubtitle')}</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature) => (
-              <Card key={feature.title} className="hover:shadow-md transition-shadow">
-                <CardContent className="pt-6">
-                  <div className={`inline-flex p-3 rounded-lg ${feature.bg} mb-4`}>
-                    <feature.icon className={`h-6 w-6 ${feature.color}`} />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">কিভাবে শুরু করবেন?</h2>
-            <p className="text-lg text-gray-500">মাত্র তিনটি সহজ ধাপে শুরু করুন</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {steps.map((item) => (
-              <div key={item.step} className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-700 text-white text-xl font-bold mb-4">{item.step}</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">{item.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{item.description}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {steps.map(({ icon: Icon, title, description }, i) => (
+              <div key={title} className="relative rounded-xl border border-gray-200 p-6 text-center hover:shadow-md transition-shadow">
+                <span className="absolute top-3 right-4 text-sm font-semibold text-green-700/40">{nf.format(i + 1)}</span>
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-700 text-white mb-4">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
               </div>
             ))}
           </div>
-          <div className="text-center mt-12">
-            <Button size="lg" asChild>
-              <Link href="/register">এখনই শুরু করুন <ArrowRight className="ml-2 h-5 w-5" /></Link>
-            </Button>
-          </div>
         </div>
       </section>
 
+      {/* Ayah */}
       <section className="py-16 bg-green-700 text-white">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="text-2xl md:text-3xl font-light mb-4 leading-relaxed" dir="rtl">وَمِنْ آيَاتِهِ أَنْ خَلَقَ لَكُم مِّنْ أَنفُسِكُمْ أَزْوَاجًا لِّتَسْكُنُوا إِلَيْهَا</p>
-          <p className="text-green-200 text-lg">"এবং তাঁর নিদর্শনাবলীর মধ্যে এই যে, তিনি তোমাদের জন্য তোমাদের মধ্য থেকে সঙ্গিনী সৃষ্টি করেছেন"</p>
-          <p className="text-green-300 text-sm mt-2">— সূরা রূম, আয়াত ২১</p>
+          <p className="text-white/75 text-lg">{t('ayahTranslation')}</p>
+          <p className="text-white/60 text-sm mt-2">{t('ayahRef')}</p>
         </div>
       </section>
     </div>

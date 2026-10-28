@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,8 @@ interface Message {
 }
 
 export default function MessagesPage() {
+  const t = useTranslations('messages');
+  const tc = useTranslations('common');
   const { data: session } = useSession();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
@@ -76,18 +79,18 @@ export default function MessagesPage() {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen"><p className="text-gray-500">লোড হচ্ছে...</p></div>;
+    return <div className="flex items-center justify-center py-24"><p className="text-gray-500">{tc('loading')}</p></div>;
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">বার্তা</h1>
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t('title')}</h1>
 
       {threads.length === 0 ? (
         <div className="text-center py-16">
           <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg">কোনো সংযোগ নেই</p>
-          <p className="text-gray-400 text-sm mt-1">গৃহীত সংযোগ থেকে বার্তা পাঠান</p>
+          <p className="text-gray-500 text-lg">{t('noConnections')}</p>
+          <p className="text-gray-400 text-sm mt-1">{t('noConnectionsHint')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[600px]">
@@ -103,7 +106,7 @@ export default function MessagesPage() {
                   <AvatarFallback>{(thread.otherUser.name ?? '?').charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{thread.otherUser.name ?? 'অজানা'}</p>
+                  <p className="font-medium text-gray-900 truncate">{thread.otherUser.name ?? tc('unknown')}</p>
                   {thread.lastMessage && <p className="text-sm text-gray-500 truncate">{thread.lastMessage}</p>}
                 </div>
               </button>
@@ -114,7 +117,7 @@ export default function MessagesPage() {
           <div className="md:col-span-2 border border-gray-200 rounded-lg flex flex-col">
             {!selectedThread ? (
               <div className="flex-1 flex items-center justify-center">
-                <p className="text-gray-500">একটি কথোপকথন নির্বাচন করুন</p>
+                <p className="text-gray-500">{t('selectThread')}</p>
               </div>
             ) : (
               <>
@@ -134,7 +137,7 @@ export default function MessagesPage() {
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                      placeholder="বার্তা লিখুন..."
+                      placeholder={t('placeholder')}
                       className="flex-1"
                     />
                     <Button onClick={sendMessage} disabled={!newMessage.trim()}>

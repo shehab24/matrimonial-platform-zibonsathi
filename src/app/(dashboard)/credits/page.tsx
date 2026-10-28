@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { CreditCard, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { intlLocale } from '@/i18n/config';
 
 export default async function CreditsPage() {
   const session = await auth();
@@ -22,19 +24,22 @@ export default async function CreditsPage() {
   ]);
 
   const balance = creditBalance?.balance ?? 0;
+  const t = await getTranslations('credits');
+  const locale = intlLocale(await getLocale());
+  const num = new Intl.NumberFormat(locale);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-8">ক্রেডিট</h1>
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-8">{t('title')}</h1>
 
       {/* Balance Card */}
       <Card className="bg-gradient-to-r from-green-700 to-teal-700 text-white mb-8">
         <CardContent className="pt-6 pb-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm mb-1">বর্তমান ব্যালেন্স</p>
-              <p className="text-5xl font-bold">{balance}</p>
-              <p className="text-green-200 mt-1">ক্রেডিট</p>
+              <p className="text-white/85 text-sm mb-1">{t('balance')}</p>
+              <p className="text-5xl font-bold">{num.format(balance)}</p>
+              <p className="text-white/75 mt-1">{t('credits')}</p>
             </div>
             <CreditCard className="h-16 w-16 text-white/30" />
           </div>
@@ -42,9 +47,9 @@ export default async function CreditsPage() {
       </Card>
 
       {/* Packages */}
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">ক্রেডিট প্যাকেজ</h2>
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('packages')}</h2>
       {packages.length === 0 ? (
-        <p className="text-gray-500 mb-8">কোনো প্যাকেজ পাওয়া যায়নি।</p>
+        <p className="text-gray-500 mb-8">{t('noPackages')}</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {packages.map((pkg) => (
@@ -55,14 +60,14 @@ export default async function CreditsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-end gap-1 mb-4">
-                  <span className="text-3xl font-bold text-green-700">{pkg.credits}</span>
-                  <span className="text-gray-500 mb-1">ক্রেডিট</span>
+                  <span className="text-3xl font-bold text-green-700">{num.format(pkg.credits)}</span>
+                  <span className="text-gray-500 mb-1">{t('credits')}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xl font-semibold">৳{Number(pkg.price).toLocaleString('bn-BD')}</span>
+                  <span className="text-xl font-semibold">৳{Number(pkg.price).toLocaleString(locale)}</span>
                   <Badge variant="secondary">{pkg.currency}</Badge>
                 </div>
-                <Button className="w-full mt-4">ক্রয় করুন</Button>
+                <Button className="w-full mt-4">{t('buy')}</Button>
               </CardContent>
             </Card>
           ))}
@@ -71,10 +76,10 @@ export default async function CreditsPage() {
 
       {/* Ledger History */}
       <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-        <TrendingUp className="h-5 w-5" /> ক্রেডিট ইতিহাস
+        <TrendingUp className="h-5 w-5" /> {t('history')}
       </h2>
       {ledger.length === 0 ? (
-        <p className="text-gray-500 text-center py-8">কোনো লেনদেন নেই।</p>
+        <p className="text-gray-500 text-center py-8">{t('noTransactions')}</p>
       ) : (
         <Card>
           <CardContent className="p-0">
@@ -82,28 +87,28 @@ export default async function CreditsPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-4 py-3 text-left text-gray-600">তারিখ</th>
-                    <th className="px-4 py-3 text-left text-gray-600">ধরন</th>
-                    <th className="px-4 py-3 text-right text-gray-600">পরিমাণ</th>
-                    <th className="px-4 py-3 text-right text-gray-600">ব্যালেন্স</th>
-                    <th className="px-4 py-3 text-left text-gray-600">নোট</th>
+                    <th className="px-4 py-3 text-left text-gray-600">{t('date')}</th>
+                    <th className="px-4 py-3 text-left text-gray-600">{t('type')}</th>
+                    <th className="px-4 py-3 text-right text-gray-600">{t('amount')}</th>
+                    <th className="px-4 py-3 text-right text-gray-600">{t('balanceCol')}</th>
+                    <th className="px-4 py-3 text-left text-gray-600">{t('note')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {ledger.map((entry) => (
                     <tr key={entry.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-gray-600">
-                        {new Date(entry.createdAt).toLocaleDateString('bn-BD')}
+                        {new Date(entry.createdAt).toLocaleDateString(locale)}
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant={entry.type === 'PURCHASE' ? 'success' : entry.type === 'DEDUCTION' ? 'destructive' : 'secondary'}>
-                          {entry.type === 'PURCHASE' ? 'ক্রয়' : entry.type === 'DEDUCTION' ? 'কর্তন' : entry.type === 'REFUND' ? 'ফেরত' : 'সমন্বয়'}
+                          {t(entry.type)}
                         </Badge>
                       </td>
                       <td className={`px-4 py-3 text-right font-medium ${entry.amount > 0 ? 'text-green-700' : 'text-red-600'}`}>
-                        {entry.amount > 0 ? '+' : ''}{entry.amount}
+                        {entry.amount > 0 ? '+' : ''}{num.format(entry.amount)}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-700">{entry.balanceAfter}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{num.format(entry.balanceAfter)}</td>
                       <td className="px-4 py-3 text-gray-500">{entry.note ?? '-'}</td>
                     </tr>
                   ))}

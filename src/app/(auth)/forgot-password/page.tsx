@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,13 +14,16 @@ import { toast } from '@/hooks/use-toast';
 import { forgotPassword } from '@/actions/auth';
 
 const schema = z.object({
-  email: z.string().email('সঠিক ইমেইল দিন'),
+  email: z.string().email('invalidEmail'),
 });
 
 type FormData = z.infer<typeof schema>;
 
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const t = useTranslations('auth');
+  const tv = useTranslations('validation');
+  const tc = useTranslations('common');
   const [sent, setSent] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
@@ -31,9 +35,9 @@ export default function ForgotPasswordPage() {
     try {
       await forgotPassword(data.email);
       setSent(true);
-      toast({ variant: 'success', title: 'সফল!', description: 'পাসওয়ার্ড রিসেট লিংক পাঠানো হয়েছে।' });
+      toast({ variant: 'success', title: tc('success'), description: t('resetLinkSent') });
     } catch {
-      toast({ variant: 'destructive', title: 'ত্রুটি', description: 'একটি সমস্যা হয়েছে, আবার চেষ্টা করুন।' });
+      toast({ variant: 'destructive', title: tc('error'), description: t('genericError') });
     } finally {
       setIsLoading(false);
     }
@@ -44,28 +48,28 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         <Card>
           <CardHeader>
-            <CardTitle>পাসওয়ার্ড ভুলে গেছেন?</CardTitle>
-            <CardDescription>আপনার ইমেইল দিন, আমরা রিসেট লিংক পাঠাবো।</CardDescription>
+            <CardTitle>{t('forgotTitle')}</CardTitle>
+            <CardDescription>{t('forgotSubtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             {sent ? (
               <div className="text-center py-4">
-                <p className="text-green-700 font-medium mb-2">ইমেইল পাঠানো হয়েছে!</p>
-                <p className="text-sm text-gray-600 mb-4">আপনার ইমেইল চেক করুন এবং লিংকে ক্লিক করুন।</p>
-                <Link href="/login" className="text-green-700 hover:underline text-sm">লগইনে ফিরুন</Link>
+                <p className="text-green-700 font-medium mb-2">{t('emailSent')}</p>
+                <p className="text-sm text-gray-600 mb-4">{t('checkEmail')}</p>
+                <Link href="/login" className="text-green-700 hover:underline text-sm">{t('backToLogin')}</Link>
               </div>
             ) : (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">ইমেইল</Label>
-                  <Input id="email" type="email" placeholder="আপনার ইমেইল" {...register('email')} />
-                  {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
+                  <Label htmlFor="email">{t('email')}</Label>
+                  <Input id="email" type="email" placeholder={t('emailPlaceholder')} {...register('email')} />
+                  {errors.email && <p className="text-sm text-red-600">{tv(errors.email.message ?? '')}</p>}
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'পাঠানো হচ্ছে...' : 'রিসেট লিংক পাঠান'}
+                  {isLoading ? t('sending') : t('sendResetLink')}
                 </Button>
                 <p className="text-center text-sm">
-                  <Link href="/login" className="text-green-700 hover:underline">লগইনে ফিরুন</Link>
+                  <Link href="/login" className="text-green-700 hover:underline">{t('backToLogin')}</Link>
                 </p>
               </form>
             )}

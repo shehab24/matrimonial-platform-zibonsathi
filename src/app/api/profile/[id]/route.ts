@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { actionError } from '@/lib/action-error';
 import { ProfileStatus, ConnectionStatus } from '@prisma/client';
 
 export async function GET(
@@ -19,7 +20,18 @@ export async function GET(
   });
 
   if (!profile || profile.status !== ProfileStatus.APPROVED || !profile.isVisible) {
-    return NextResponse.json({ error: 'প্রোফাইল পাওয়া যায়নি' }, { status: 404 });
+    return NextResponse.json({ error: await actionError('profileNotFound') }, { status: 404 });
+  }
+
+  // Record a view for the owner's dashboard stats (logged-in visitors only, never the owner)
+  if (session?.user?.id && session.user.id !== profile.userId) {
+    await prisma.recentlyViewed
+      .upsert({
+        where: { userId_profileId: { userId: session.user.id, profileId: profile.id } },
+        create: { userId: session.user.id, profileId: profile.id },
+        update: { viewedAt: new Date() },
+      })
+      .catch((error) => console.error('record view error:', error));
   }
 
   // Strip contact info by default

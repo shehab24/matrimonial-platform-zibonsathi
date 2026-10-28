@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { actionError } from '@/lib/action-error';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -11,7 +12,7 @@ import { revalidatePath } from 'next/cache';
 export async function toggleIgnore(profileId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'লগইন করুন' };
+    return { success: false, error: await actionError('loginRequired') };
   }
 
   const userId = session.user.id;
@@ -24,14 +25,14 @@ export async function toggleIgnore(profileId: string) {
     });
 
     if (!profile) {
-      return { success: false, error: 'প্রোফাইল পাওয়া যায়নি' };
+      return { success: false, error: await actionError('profileNotFound') };
     }
 
     const targetUserId = profile.userId;
 
     // Can't ignore yourself
     if (userId === targetUserId) {
-      return { success: false, error: 'নিজেকে উপেক্ষা করতে পারবেন না' };
+      return { success: false, error: await actionError('cannotIgnoreSelf') };
     }
 
     // Check if already ignored
@@ -66,7 +67,7 @@ export async function toggleIgnore(profileId: string) {
     }
   } catch (error) {
     console.error('Ignore toggle error:', error);
-    return { success: false, error: 'কিছু সমস্যা হয়েছে' };
+    return { success: false, error: await actionError('somethingWrong') };
   }
 }
 
@@ -113,7 +114,7 @@ export async function checkIgnoreStatus(profileId: string) {
 export async function getIgnoredProfiles() {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'লগইন করুন', ignored: [] };
+    return { success: false, error: await actionError('loginRequired'), ignored: [] };
   }
 
   try {
@@ -148,7 +149,7 @@ export async function getIgnoredProfiles() {
     return { success: true, ignored };
   } catch (error) {
     console.error('Get ignored profiles error:', error);
-    return { success: false, error: 'কিছু সমস্যা হয়েছে', ignored: [] };
+    return { success: false, error: await actionError('somethingWrong'), ignored: [] };
   }
 }
 
@@ -159,7 +160,7 @@ export async function getIgnoredProfiles() {
 export async function removeFromIgnored(targetUserId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'লগইন করুন' };
+    return { success: false, error: await actionError('loginRequired') };
   }
 
   try {
@@ -177,6 +178,6 @@ export async function removeFromIgnored(targetUserId: string) {
     return { success: true };
   } catch (error) {
     console.error('Remove from ignored error:', error);
-    return { success: false, error: 'কিছু সমস্যা হয়েছে' };
+    return { success: false, error: await actionError('somethingWrong') };
   }
 }

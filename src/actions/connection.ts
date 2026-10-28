@@ -2,12 +2,14 @@
 
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { actionError } from '@/lib/action-error';
+import { notify } from '@/lib/notifications';
 import { ConnectionStatus } from '@prisma/client';
 
 export async function sendConnectionRequest(receiverProfileId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'অনুমোদিত নয়' };
+    return { success: false, error: await actionError('notAuthorized') };
   }
 
   try {
@@ -16,7 +18,7 @@ export async function sendConnectionRequest(receiverProfileId: string) {
     });
 
     if (!senderProfile) {
-      return { success: false, error: 'আপনার প্রোফাইল পাওয়া যায়নি' };
+      return { success: false, error: await actionError('ownProfileNotFound') };
     }
 
     const receiverProfile = await prisma.profile.findUnique({
@@ -24,7 +26,7 @@ export async function sendConnectionRequest(receiverProfileId: string) {
     });
 
     if (!receiverProfile) {
-      return { success: false, error: 'প্রাপকের প্রোফাইল পাওয়া যায়নি' };
+      return { success: false, error: await actionError('recipientNotFound') };
     }
 
     // Check existing connection
@@ -38,7 +40,7 @@ export async function sendConnectionRequest(receiverProfileId: string) {
     });
 
     if (existingConnection) {
-      return { success: false, error: 'সংযোগ ইতিমধ্যে বিদ্যমান' };
+      return { success: false, error: await actionError('connectionExists') };
     }
 
     // Transaction with SELECT FOR UPDATE on credit balance
@@ -48,7 +50,7 @@ export async function sendConnectionRequest(receiverProfileId: string) {
       });
 
       if (!creditBalance || creditBalance.balance < 1) {
-        throw new Error('অপর্যাপ্ত ক্রেডিট');
+        throw new Error('INSUFFICIENT_CREDITS');
       }
 
       const connection = await tx.connection.create({
@@ -81,9 +83,14 @@ export async function sendConnectionRequest(receiverProfileId: string) {
       return connection;
     });
 
+    await notify(receiverProfile.userId, 'CONNECTION_REQUEST', senderProfile.id);
+
     return { success: true, connection: result };
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'সংযোগ অনুরোধ ব্যর্থ হয়েছে';
+    // Only surface the known credit error; anything else gets a generic message
+    const errorMessage = await actionError(
+      error instanceof Error && error.message === 'INSUFFICIENT_CREDITS' ? 'insufficientCredits' : 'connectionFailed'
+    );
     console.error('sendConnectionRequest error:', error);
     return { success: false, error: errorMessage };
   }
@@ -95,7 +102,7 @@ export async function respondToConnection(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'অনুমোদিত নয়' };
+    return { success: false, error: await actionError('notAuthorized') };
   }
 
   try {
@@ -104,15 +111,15 @@ export async function respondToConnection(
     });
 
     if (!connection) {
-      return { success: false, error: 'সংযোগ পাওয়া যায়নি' };
+      return { success: false, error: await actionError('connectionNotFound') };
     }
 
     if (connection.receiverId !== session.user.id) {
-      return { success: false, error: 'শুধুমাত্র প্রাপক এই সিদ্ধান্ত নিতে পারেন' };
+      return { success: false, error: await actionError('onlyRecipient') };
     }
 
     if (connection.status !== ConnectionStatus.PENDING) {
-      return { success: false, error: 'এই সংযোগ ইতিমধ্যে প্রক্রিয়া করা হয়েছে' };
+      return { success: false, error: await actionError('alreadyProcessed') };
     }
 
     const updated = await prisma.connection.update({
@@ -122,17 +129,23 @@ export async function respondToConnection(
       },
     });
 
+    await notify(
+      connection.senderId,
+      action === 'ACCEPT' ? 'CONNECTION_ACCEPTED' : 'CONNECTION_REJECTED',
+      connection.receiverProfileId
+    );
+
     return { success: true, connection: updated };
   } catch (error) {
     console.error('respondToConnection error:', error);
-    return { success: false, error: 'প্রতিক্রিয়া ব্যর্থ হয়েছে' };
+    return { success: false, error: await actionError('respondFailed') };
   }
 }
 
 export async function getMyConnections() {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'অনুমোদিত নয়' };
+    return { success: false, error: await actionError('notAuthorized') };
   }
 
   try {
@@ -142,8 +155,11 @@ export async function getMyConnections() {
         receiverProfile: {
           select: {
             id: true,
+            oderId: true,
             displayName: true,
+            dateOfBirth: true,
             gender: true,
+            maritalStatus: true,
             division: true,
             district: true,
             education: true,
@@ -161,8 +177,11 @@ export async function getMyConnections() {
         senderProfile: {
           select: {
             id: true,
+            oderId: true,
             displayName: true,
+            dateOfBirth: true,
             gender: true,
+            maritalStatus: true,
             division: true,
             district: true,
             education: true,
@@ -177,14 +196,14 @@ export async function getMyConnections() {
     return { success: true, sent, received };
   } catch (error) {
     console.error('getMyConnections error:', error);
-    return { success: false, error: 'সংযোগ লোড ব্যর্থ হয়েছে' };
+    return { success: false, error: await actionError('connectionsLoadFailed') };
   }
 }
 
 export async function getContactInfo(profileId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { authorized: false, error: 'অনুমোদিত নয়' };
+    return { authorized: false, error: await actionError('notAuthorized') };
   }
 
   try {
@@ -193,7 +212,7 @@ export async function getContactInfo(profileId: string) {
     });
 
     if (!profile) {
-      return { authorized: false, error: 'প্রোফাইল পাওয়া যায়নি' };
+      return { authorized: false, error: await actionError('profileNotFound') };
     }
 
     // CRITICAL: server-side only check
@@ -218,7 +237,7 @@ export async function getContactInfo(profileId: string) {
     };
   } catch (error) {
     console.error('getContactInfo error:', error);
-    return { authorized: false, error: 'যোগাযোগ তথ্য লোড ব্যর্থ হয়েছে' };
+    return { authorized: false, error: await actionError('contactLoadFailed') };
   }
 }
 

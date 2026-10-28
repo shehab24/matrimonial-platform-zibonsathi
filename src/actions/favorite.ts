@@ -2,6 +2,8 @@
 
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { actionError } from '@/lib/action-error';
+import { notify } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -11,7 +13,7 @@ import { revalidatePath } from 'next/cache';
 export async function toggleFavorite(profileId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'লগইন করুন' };
+    return { success: false, error: await actionError('loginRequired') };
   }
 
   const userId = session.user.id;
@@ -24,14 +26,14 @@ export async function toggleFavorite(profileId: string) {
     });
 
     if (!profile) {
-      return { success: false, error: 'প্রোফাইল পাওয়া যায়নি' };
+      return { success: false, error: await actionError('profileNotFound') };
     }
 
     const targetUserId = profile.userId;
 
     // Can't favorite yourself
     if (userId === targetUserId) {
-      return { success: false, error: 'নিজেকে পছন্দে রাখতে পারবেন না' };
+      return { success: false, error: await actionError('cannotFavoriteSelf') };
     }
 
     // Check if already favorited
@@ -59,12 +61,14 @@ export async function toggleFavorite(profileId: string) {
           profileId: targetUserId,
         },
       });
+      const myProfile = await prisma.profile.findUnique({ where: { userId }, select: { id: true } });
+      await notify(targetUserId, 'FAVORITED', myProfile?.id);
       revalidatePath('/favorites');
       return { success: true, isFavorite: true };
     }
   } catch (error) {
     console.error('Favorite toggle error:', error);
-    return { success: false, error: 'কিছু সমস্যা হয়েছে' };
+    return { success: false, error: await actionError('somethingWrong') };
   }
 }
 
@@ -111,7 +115,7 @@ export async function checkFavoriteStatus(profileId: string) {
 export async function getFavorites() {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'লগইন করুন', favorites: [] };
+    return { success: false, error: await actionError('loginRequired'), favorites: [] };
   }
 
   try {
@@ -149,7 +153,7 @@ export async function getFavorites() {
     return { success: true, favorites };
   } catch (error) {
     console.error('Get favorites error:', error);
-    return { success: false, error: 'কিছু সমস্যা হয়েছে', favorites: [] };
+    return { success: false, error: await actionError('somethingWrong'), favorites: [] };
   }
 }
 
@@ -159,7 +163,7 @@ export async function getFavorites() {
 export async function getWhoLikedMe() {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'লগইন করুন', likedBy: [] };
+    return { success: false, error: await actionError('loginRequired'), likedBy: [] };
   }
 
   try {
@@ -197,7 +201,7 @@ export async function getWhoLikedMe() {
     return { success: true, likedBy };
   } catch (error) {
     console.error('Get who liked me error:', error);
-    return { success: false, error: 'কিছু সমস্যা হয়েছে', likedBy: [] };
+    return { success: false, error: await actionError('somethingWrong'), likedBy: [] };
   }
 }
 
@@ -208,7 +212,7 @@ export async function getWhoLikedMe() {
 export async function removeFromFavorites(profileId: string) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'লগইন করুন' };
+    return { success: false, error: await actionError('loginRequired') };
   }
 
   try {
@@ -219,7 +223,7 @@ export async function removeFromFavorites(profileId: string) {
     });
 
     if (!profile) {
-      return { success: false, error: 'প্রোফাইল পাওয়া যায়নি' };
+      return { success: false, error: await actionError('profileNotFound') };
     }
 
     await prisma.favorite.delete({
@@ -235,6 +239,6 @@ export async function removeFromFavorites(profileId: string) {
     return { success: true };
   } catch (error) {
     console.error('Remove from favorites error:', error);
-    return { success: false, error: 'কিছু সমস্যা হয়েছে' };
+    return { success: false, error: await actionError('somethingWrong') };
   }
 }
