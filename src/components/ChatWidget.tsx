@@ -3,8 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 
-const WEBHOOK_URL = 'https://n8n.codeblend.co/webhook/zibonsathi-chat';
-
 interface Message {
   text: string;
   isUser: boolean;
@@ -12,94 +10,166 @@ interface Message {
 }
 
 interface ChatState {
-  state: string;
+  state: 'menu' | 'waiting_name' | 'waiting_phone' | 'done';
   collectedName?: string;
-  collectedPhone?: string;
 }
+
+const FAQs: Record<string, { keywords: string[]; response: string }> = {
+  register: {
+    keywords: ['রেজিস্ট্রেশন', 'register', 'signup', 'নিবন্ধন', 'অ্যাকাউন্ট'],
+    response: '📝 **রেজিস্ট্রেশন করতে:**\n\n১. ইমেইল ও পাসওয়ার্ড দিয়ে নিবন্ধন করুন\n২. লগইন করুন\n৩. বায়োডাটা তৈরি করুন',
+  },
+  biodata: {
+    keywords: ['বায়োডাটা', 'biodata', 'প্রোফাইল', 'আইডি'],
+    response: '📋 **বায়োডাটা:** বিনামূল্যে তৈরি করুন, ২৪-৪৮ ঘণ্টায় অনুমোদন হবে।',
+  },
+  pricing: {
+    keywords: ['খরচ', 'price', 'cost', 'credit', 'টাকা', 'ক্রেডিট'],
+    response: '💰 **খরচ:** অ্যাকাউন্ট ও বায়োডাটা বিনামূল্যে। যোগাযোগের তথ্য দেখতে ক্রেডিট লাগে।',
+  },
+  privacy: {
+    keywords: ['গোপনীয়তা', 'privacy', 'safe', 'নিরাপত্তা'],
+    response: '🔒 **গোপনীয়তা:** আপনার তথ্য সুরক্ষিত, শুধু অনুমোদিত সংযোগে দেখা যায়।',
+  },
+};
+
+const BUTTONS = ['📝 রেজিস্ট্রেশন', '📋 বায়োডাটা', '💰 খরচ', '🔒 গোপনীয়তা', '👨‍💼 সাপোর্ট'];
 
 export default function ChatWidget() {
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [initialized, setInitialized] = useState(false);
   const [chatState, setChatState] = useState<ChatState>({ state: 'menu' });
+  const [whatsappNumber, setWhatsappNumber] = useState<string | null>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
-  const sessionId = useRef('zs_' + Math.random().toString(36).substr(2, 9));
 
   useEffect(() => {
     if (messagesRef.current) {
       messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages]);
 
+  // Fetch WhatsApp number on mount
   useEffect(() => {
-    if (isOpen && !initialized) {
-      setInitialized(true);
-      sendMessage('start');
-    }
-  }, [isOpen, initialized]);
+    fetch('/api/settings?key=whatsapp_number')
+      .then((res) => res.json())
+      .then((data) => setWhatsappNumber(data.value))
+      .catch(() => {});
+  }, []);
 
-  const sendMessage = async (text: string) => {
-    if (!text.trim()) return;
-
-    if (text !== 'start') {
-      setMessages(prev => [...prev, { text, isUser: true }]);
-    }
-    setInput('');
-    setIsTyping(true);
-
-    try {
-      const payload: Record<string, unknown> = {
-        message: text,
-        sessionId: sessionId.current,
-        state: chatState.state,
-        collectedName: chatState.collectedName,
-        collectedPhone: chatState.collectedPhone,
-      };
-
-      // If user is logged in, pass their info
-      if (session?.user) {
-        payload.isLoggedIn = true;
-        payload.userName = session.user.name || null;
-        payload.userEmail = session.user.email || null;
-        // Phone will be asked via chatbot if needed
-        payload.userPhone = null;
-      }
-
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await response.json();
-      setIsTyping(false);
-
-      // Update chat state from response
-      if (data.state) {
-        setChatState({
-          state: data.state,
-          collectedName: data.collectedName,
-          collectedPhone: data.collectedPhone,
-        });
-      }
-
-      if (data.message) {
-        setMessages(prev => [...prev, {
-          text: data.message,
+  // Show welcome message when chat opens
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      setMessages([
+        {
+          text: '👋 স্বাগতম! জীবনসাথী সাপোর্টে কিভাবে সাহায্য করতে পারি?',
           isUser: false,
-          buttons: data.buttons || []
-        }]);
-      }
-    } catch {
-      setIsTyping(false);
-      setMessages(prev => [...prev, {
-        text: 'দুঃখিত, সংযোগে সমস্যা হয়েছে। আবার চেষ্টা করুন।',
-        isUser: false
-      }]);
+          buttons: BUTTONS,
+        },
+      ]);
     }
+  }, [isOpen, messages.length]);
+
+  const openWhatsApp = (name: string, phone: string) => {
+    if (!whatsappNumber) {
+      setMessages((prev) => [
+        ...prev,
+        { text: '❌ দুঃখিত, সাপোর্ট নম্বর সেট করা নেই। অনুগ্রহ করে পরে চেষ্টা করুন।', isUser: false },
+      ]);
+      return;
+    }
+
+    const message = `🆘 সাপোর্ট রিকোয়েস্ট\n\n👤 নাম: ${name}\n📱 মোবাইল: ${phone}`;
+    const encodedMessage = encodeURIComponent(message);
+    const cleanNumber = whatsappNumber.replace(/[^0-9]/g, '');
+    const url = `https://wa.me/${cleanNumber}?text=${encodedMessage}`;
+
+    // Show confirmation
+    setMessages((prev) => [
+      ...prev,
+      {
+        text: '✅ ধন্যবাদ! WhatsApp এ চ্যাট শুরু করতে নিচের বাটনে ক্লিক করুন।',
+        isUser: false,
+        buttons: ['💬 WhatsApp এ চ্যাট করুন'],
+      },
+    ]);
+    setChatState({ state: 'done' });
+
+    // Store URL for button click
+    sessionStorage.setItem('zs_whatsapp_url', url);
+  };
+
+  const handleMessage = (text: string) => {
+    const lowerText = text.toLowerCase().trim();
+    setMessages((prev) => [...prev, { text, isUser: true }]);
+
+    // Handle WhatsApp button click
+    if (text === '💬 WhatsApp এ চ্যাট করুন') {
+      const url = sessionStorage.getItem('zs_whatsapp_url');
+      if (url) {
+        window.open(url, '_blank');
+      }
+      return;
+    }
+
+    // Handle state-based flow
+    if (chatState.state === 'waiting_name') {
+      setChatState({ state: 'waiting_phone', collectedName: text });
+      setMessages((prev) => [
+        ...prev,
+        { text: '📱 আপনার মোবাইল নম্বর দিন:', isUser: false },
+      ]);
+      return;
+    }
+
+    if (chatState.state === 'waiting_phone') {
+      openWhatsApp(chatState.collectedName || 'Unknown', text);
+      return;
+    }
+
+    // Check for support request
+    if (lowerText.includes('সাপোর্ট') || lowerText.includes('support') || lowerText.includes('help')) {
+      if (session?.user?.name) {
+        // Logged in - ask for phone only
+        setChatState({ state: 'waiting_phone', collectedName: session.user.name });
+        setMessages((prev) => [
+          ...prev,
+          { text: `👤 ${session.user.name}, আপনার মোবাইল নম্বর দিন:`, isUser: false },
+        ]);
+      } else {
+        // Not logged in - ask for name first
+        setChatState({ state: 'waiting_name' });
+        setMessages((prev) => [
+          ...prev,
+          { text: '👤 আপনার নাম লিখুন:', isUser: false },
+        ]);
+      }
+      return;
+    }
+
+    // Check FAQs
+    for (const faq of Object.values(FAQs)) {
+      if (faq.keywords.some((k) => lowerText.includes(k))) {
+        setMessages((prev) => [
+          ...prev,
+          { text: faq.response, isUser: false, buttons: BUTTONS },
+        ]);
+        return;
+      }
+    }
+
+    // Default response
+    setMessages((prev) => [
+      ...prev,
+      { text: 'দুঃখিত, বুঝতে পারিনি। নিচের অপশন থেকে বেছে নিন:', isUser: false, buttons: BUTTONS },
+    ]);
+  };
+
+  const sendMessage = (text: string) => {
+    if (!text.trim()) return;
+    setInput('');
+    handleMessage(text);
   };
 
   return (
@@ -142,7 +212,11 @@ export default function ChatWidget() {
                       <button
                         key={j}
                         onClick={() => sendMessage(btn)}
-                        className="bg-white border border-rose-600 text-rose-600 py-2 px-3 rounded-full text-xs cursor-pointer transition-all hover:bg-rose-600 hover:text-white"
+                        className={`border py-2 px-3 rounded-full text-xs cursor-pointer transition-all ${
+                          btn.includes('WhatsApp')
+                            ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
+                            : 'bg-white border-rose-600 text-rose-600 hover:bg-rose-600 hover:text-white'
+                        }`}
                       >
                         {btn}
                       </button>
@@ -151,13 +225,6 @@ export default function ChatWidget() {
                 )}
               </div>
             ))}
-            {isTyping && (
-              <div className="flex gap-1 p-3 px-4 bg-gray-100 rounded-2xl self-start w-fit">
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            )}
           </div>
 
           {/* Input */}
@@ -168,9 +235,11 @@ export default function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage(input)}
               placeholder={
-                chatState.state === 'waiting_name' ? 'আপনার নাম লিখুন...' :
-                chatState.state === 'waiting_phone' ? 'মোবাইল নম্বর লিখুন...' :
-                'আপনার প্রশ্ন লিখুন...'
+                chatState.state === 'waiting_name'
+                  ? 'আপনার নাম লিখুন...'
+                  : chatState.state === 'waiting_phone'
+                  ? 'মোবাইল নম্বর লিখুন...'
+                  : 'আপনার প্রশ্ন লিখুন...'
               }
               className="flex-1 border border-gray-300 rounded-full py-2 px-4 text-sm outline-none focus:border-rose-600 transition-colors"
             />
