@@ -19,7 +19,7 @@ function viewWindows() {
 }
 
 const bannerStyle = {
-  DRAFT: { icon: FileEdit, className: 'bg-gray-100 text-gray-600', cta: 'fill', href: '/profile' },
+  DRAFT: { icon: FileEdit, className: 'bg-gray-50 text-gray-500 ring-1 ring-gray-100', cta: 'fill', href: '/profile' },
   PENDING_APPROVAL: { icon: Clock, className: 'bg-yellow-100 text-yellow-700', cta: 'edit', href: '/profile' },
   APPROVED: { icon: BadgeCheck, className: 'bg-green-100 text-green-700', cta: 'view', href: null },
   REJECTED: { icon: AlertCircle, className: 'bg-red-100 text-red-600', cta: 'edit', href: '/profile' },
@@ -42,22 +42,25 @@ export default async function DashboardPage() {
   const bannerHref = banner.href ?? `/profile/${profile?.id}`;
 
   const quickLinks = [
-    { href: '/favorites', label: t('nav.favorites'), desc: t('favoritesDesc'), count: favorites, icon: Heart, className: 'bg-pink-100 text-pink-700' },
-    { href: '/ignored', label: t('nav.ignored'), desc: t('ignoredDesc'), count: ignored, icon: Ban, className: 'bg-red-100 text-red-600' },
-    { href: '/credits', label: t('nav.purchases'), desc: t('purchasesDesc'), count: purchases, icon: ShoppingCart, className: 'bg-green-100 text-green-700' },
-    { href: '/connections/sent', label: t('nav.proposalsSent'), desc: t('sentDesc'), count: sent, icon: Send, className: 'bg-blue-100 text-blue-700' },
-    { href: '/connections/received', label: t('nav.proposalsReceived'), desc: t('receivedDesc'), count: received, icon: Inbox, className: 'bg-green-100 text-green-700' },
+    { href: '/favorites', label: t('nav.favorites'), desc: t('favoritesDesc'), count: favorites, icon: Heart, className: 'bg-pink-50 text-pink-600 ring-pink-100' },
+    { href: '/ignored', label: t('nav.ignored'), desc: t('ignoredDesc'), count: ignored, icon: Ban, className: 'bg-red-50 text-red-500 ring-red-100' },
+    { href: '/credits', label: t('nav.purchases'), desc: t('purchasesDesc'), count: purchases, icon: ShoppingCart, className: 'bg-emerald-50 text-emerald-600 ring-emerald-100' },
+    { href: '/connections/sent', label: t('nav.proposalsSent'), desc: t('sentDesc'), count: sent, icon: Send, className: 'bg-blue-50 text-blue-600 ring-blue-100' },
+    { href: '/connections/received', label: t('nav.proposalsReceived'), desc: t('receivedDesc'), count: received, icon: Inbox, className: 'bg-teal-50 text-teal-600 ring-teal-100' },
   ];
 
+  const card = 'rounded-2xl border border-gray-100 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]';
+  const cardHover = 'transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-200 hover:shadow-[0_8px_24px_-8px_rgba(16,24,40,0.12)]';
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Biodata status banner */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${banner.className}`}>
+      <div className={`${card} p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4`}>
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${banner.className}`}>
           <BannerIcon className="h-5 w-5" />
         </span>
-        <p className="flex-1 text-sm text-gray-700">{t(`banner.${status}`, { id: profile?.oderId ?? '' })}</p>
-        <Button asChild className="shrink-0">
+        <p className="flex-1 text-sm leading-relaxed text-gray-600">{t(`banner.${status}`, { id: profile?.oderId ?? '' })}</p>
+        <Button asChild className="shrink-0 rounded-xl">
           <Link href={bannerHref}>
             {t(`banner.${banner.cta}`)} <ArrowRight className="h-4 w-4" />
           </Link>
@@ -66,60 +69,66 @@ export default async function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-700 to-teal-800 p-6 text-white shadow-md">
-          <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10" />
+        <div className="relative flex flex-col overflow-hidden rounded-2xl bg-gradient-to-br from-green-700 via-green-800 to-teal-900 p-6 text-white shadow-[0_10px_30px_-12px_rgba(21,128,61,0.55)]">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10" />
+          <div className="pointer-events-none absolute -bottom-16 -left-10 h-32 w-32 rounded-full bg-white/5" />
           <div className="relative flex items-start justify-between">
-            <p className="text-3xl font-bold">{t('connectionsCount', { count: balance })}</p>
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15"><Coins className="h-5 w-5" /></span>
+            <p className="text-3xl font-bold tracking-tight">{t('connectionsCount', { count: balance })}</p>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20"><Coins className="h-5 w-5" /></span>
           </div>
           <p className="relative mt-4 font-semibold">{t('connectionsLabel')}</p>
-          <p className="relative mt-1 text-xs text-white/75">{t('connectionsHint')}</p>
-          <Button asChild variant="secondary" className="relative mt-5 w-full bg-white text-green-800 hover:bg-white/90">
+          <p className="relative mt-1 text-xs leading-relaxed text-white/70">{t('connectionsHint')}</p>
+          <span aria-hidden className="block min-h-5 flex-1" />
+          <Button asChild variant="secondary" className="relative w-full rounded-xl bg-white text-green-800 hover:bg-white/90">
             <Link href="/credits"><ShoppingBag className="h-4 w-4" /> {t('buyConnections')}</Link>
           </Button>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className={`${card} flex flex-col p-6`}>
           <div className="flex items-start justify-between">
-            <p className="text-3xl font-bold text-gray-900">{t('viewsCount', { count: views })}</p>
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-700"><TrendingUp className="h-5 w-5" /></span>
+            <p className="text-3xl font-bold tracking-tight text-gray-900">{t('viewsCount', { count: views })}</p>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600 ring-1 ring-blue-100"><TrendingUp className="h-5 w-5" /></span>
           </div>
           <p className="mt-4 font-semibold text-gray-900">{t('viewsLabel')}</p>
-          <p className="mt-1 text-xs text-gray-500">{t('viewsHint')}</p>
-          <div className="mt-4 grid grid-cols-3 divide-x divide-gray-200 rounded-lg border border-gray-200 text-center">
+          <p className="mt-1 text-xs leading-relaxed text-gray-500">{t('viewsHint')}</p>
+          <span aria-hidden className="block min-h-5 flex-1" />
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-gray-50 p-1 text-center">
             {[[t('last30'), views30], [t('last7'), views7], [t('today'), viewsToday]].map(([label, value]) => (
-              <div key={label as string} className="py-2">
+              <div key={label as string} className="rounded-lg py-2 first:bg-white first:shadow-sm">
                 <p className="text-[11px] text-gray-500">{label}</p>
-                <p className="text-sm font-semibold text-gray-900">{t('viewsCount', { count: value as number })}</p>
+                <p className="mt-0.5 text-sm font-semibold text-gray-900">{t('viewsCount', { count: value as number })}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <Link href="/liked-me" className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+        <Link href="/liked-me" className={`${card} ${cardHover} group flex flex-col p-6 md:col-span-2 xl:col-span-1`}>
           <div className="flex items-start justify-between">
-            <p className="text-3xl font-bold text-gray-900">{t('likedCount', { count: likedMe })}</p>
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-100 text-yellow-700"><Star className="h-5 w-5 fill-current" /></span>
+            <p className="text-3xl font-bold tracking-tight text-gray-900">{t('likedCount', { count: likedMe })}</p>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-500 ring-1 ring-amber-100"><Star className="h-5 w-5 fill-current" /></span>
           </div>
           <p className="mt-4 font-semibold text-gray-900">{t('likedLabel')}</p>
-          <p className="mt-1 text-xs text-gray-500">{t('likedHint')}</p>
+          <p className="mt-1 text-xs leading-relaxed text-gray-500">{t('likedHint')}</p>
+          <span aria-hidden className="block min-h-5 flex-1" />
+          <span className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 transition-colors group-hover:bg-amber-50 group-hover:text-amber-700">
+            {t('viewList')}
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </span>
         </Link>
       </div>
 
       {/* Quick links */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {quickLinks.map(({ href, label, desc, count, icon: Icon, className }) => (
-          <Link key={href} href={href} className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow">
-            <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${className}`}>
-              <Icon className="h-5 w-5" />
+          <Link key={href} href={href} className={`${card} ${cardHover} group flex flex-col p-4 last:col-span-2 lg:last:col-span-1`}>
+            <span className="flex items-start justify-between">
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ${className}`}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="text-2xl font-bold tracking-tight text-gray-900">{nf.format(count)}</span>
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold text-gray-900">{label}</span>
-              <span className="block line-clamp-2 text-xs text-gray-500">{desc}</span>
-            </span>
-            <span className={`flex h-10 min-w-10 items-center justify-center rounded-lg px-2 text-lg font-bold ${className}`}>
-              {nf.format(count)}
-            </span>
+            <span className="mt-4 block text-sm font-semibold text-gray-900">{label}</span>
+            <span className="mt-0.5 block line-clamp-2 text-xs leading-relaxed text-gray-500">{desc}</span>
           </Link>
         ))}
       </div>

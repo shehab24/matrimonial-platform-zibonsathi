@@ -585,6 +585,7 @@
     "viewBiodata": "বায়োডাটা",
     "removeFavorite": "পছন্দের তালিকা থেকে সরান",
     "removeIgnored": "অপছন্দের তালিকা থেকে সরান",
-    "hidden": "হাইড"
+    "hidden": "হাইড",
+    "viewList": "তালিকা দেখুন"
   }
 }

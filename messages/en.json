@@ -585,6 +585,7 @@
     "viewBiodata": "Biodata",
     "removeFavorite": "Remove from favorites",
     "removeIgnored": "Remove from ignore list",
-    "hidden": "Hidden"
+    "hidden": "Hidden",
+    "viewList": "View list"
   }
 }
