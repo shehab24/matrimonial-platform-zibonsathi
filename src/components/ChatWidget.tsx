@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 
 const WEBHOOK_URL = 'https://n8n.codeblend.co/webhook/zibonsathi-chat';
 
@@ -10,12 +11,20 @@ interface Message {
   buttons?: string[];
 }
 
+interface ChatState {
+  state: string;
+  collectedName?: string;
+  collectedPhone?: string;
+}
+
 export default function ChatWidget() {
+  const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [chatState, setChatState] = useState<ChatState>({ state: 'menu' });
   const messagesRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef('zs_' + Math.random().toString(36).substr(2, 9));
 
@@ -42,14 +51,40 @@ export default function ChatWidget() {
     setIsTyping(true);
 
     try {
+      const payload: Record<string, unknown> = {
+        message: text,
+        sessionId: sessionId.current,
+        state: chatState.state,
+        collectedName: chatState.collectedName,
+        collectedPhone: chatState.collectedPhone,
+      };
+
+      // If user is logged in, pass their info
+      if (session?.user) {
+        payload.isLoggedIn = true;
+        payload.userName = session.user.name || null;
+        payload.userEmail = session.user.email || null;
+        // Phone will be asked via chatbot if needed
+        payload.userPhone = null;
+      }
+
       const response = await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, sessionId: sessionId.current })
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
       setIsTyping(false);
+
+      // Update chat state from response
+      if (data.state) {
+        setChatState({
+          state: data.state,
+          collectedName: data.collectedName,
+          collectedPhone: data.collectedPhone,
+        });
+      }
 
       if (data.message) {
         setMessages(prev => [...prev, {
@@ -132,7 +167,11 @@ export default function ChatWidget() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage(input)}
-              placeholder="আপনার প্রশ্ন লিখুন..."
+              placeholder={
+                chatState.state === 'waiting_name' ? 'আপনার নাম লিখুন...' :
+                chatState.state === 'waiting_phone' ? 'মোবাইল নম্বর লিখুন...' :
+                'আপনার প্রশ্ন লিখুন...'
+              }
               className="flex-1 border border-gray-300 rounded-full py-2 px-4 text-sm outline-none focus:border-rose-600 transition-colors"
             />
             <button
