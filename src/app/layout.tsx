@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/toast';
 import SessionProvider from '@/components/auth/session-provider';
 import { themeInitScript } from '@/components/theme/theme-toggle';
 import { auth } from '@/lib/auth';
+import ChatWidget from '@/components/ChatWidget';
 
 
 // Inter renders Latin text (emails, IDs, English UI); Bangla glyphs fall through to Noto Sans Bengali
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <main className="flex-1">{children}</main>
             <Footer />
             <Toaster />
+            <ChatWidget />
           </SessionProvider>
         </NextIntlClientProvider>
       </body>
