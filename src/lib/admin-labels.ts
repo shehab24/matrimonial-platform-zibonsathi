@@ -22,3 +22,11 @@ export const MARITAL_LABELS = { NEVER_MARRIED: 'অবিবাহিত', DIVOR
 export const bnNumber = (n: number) => n.toLocaleString('bn-BD');
 
 export const bnDate = (d: Date | string | null) => (d ? new Date(d).toLocaleDateString('bn-BD') : '—');
+
+export const REPORT_REASON_LABELS: Record<string, string> = {
+  FAKE_PROFILE: 'ভুয়া প্রোফাইল',
+  INAPPROPRIATE_CONTENT: 'অনুপযুক্ত তথ্য বা ছবি',
+  HARASSMENT: 'হয়রানি বা অসদাচরণ',
+  SCAM: 'প্রতারণা বা টাকা চাওয়া',
+  OTHER: 'অন্যান্য',
+};

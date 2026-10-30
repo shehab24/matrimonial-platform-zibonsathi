@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { DIVISIONS } from '@/lib/constants';
@@ -76,9 +76,8 @@ function BrowseContent() {
     page: 1,
   });
 
-  const load = useCallback(async (f: typeof filters) => {
-    setIsLoading(true);
-    const result = await browseProfiles({
+  const fetchProfiles = (f: typeof filters) =>
+    browseProfiles({
       gender: f.gender || undefined,
       ageMin: f.ageMin ? parseInt(f.ageMin) : undefined,
       ageMax: f.ageMax ? parseInt(f.ageMax) : undefined,
@@ -88,26 +87,34 @@ function BrowseContent() {
       maritalStatus: f.maritalStatus || undefined,
       page: f.page,
     });
+
+  const show = (result: Awaited<ReturnType<typeof browseProfiles>>) => {
     if (result.success) {
       setProfiles(result.profiles as unknown as Profile[]);
       setPagination(result.pagination as Pagination);
     }
     setIsLoading(false);
-  }, []);
+  };
 
-  useEffect(() => { load(filters); }, []);
+  useEffect(() => { fetchProfiles(filters).then(show); }, []); // eslint-disable-line react-hooks/exhaustive-deps -- initial load only
+
+  // Filter/page changes show the loading state; the initial load already starts in it
+  const reload = async (f: typeof filters) => {
+    setIsLoading(true);
+    show(await fetchProfiles(f));
+  };
 
   const handleFilter = async (e: React.FormEvent) => {
     e.preventDefault();
     const newFilters = { ...filters, page: 1 };
     setFilters(newFilters);
-    load(newFilters);
+    reload(newFilters);
   };
 
   const changePage = (page: number) => {
     const newFilters = { ...filters, page };
     setFilters(newFilters);
-    load(newFilters);
+    reload(newFilters);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -168,7 +175,7 @@ function BrowseContent() {
                 <Button type="submit" className="w-full">{t('apply')}</Button>
                 <Button type="button" variant="outline" className="w-full" onClick={() => {
                   setFilters({ gender: '', ageMin: '', ageMax: '', division: '', district: '', education: '', maritalStatus: '', page: 1 });
-                  load({ gender: '', ageMin: '', ageMax: '', division: '', district: '', education: '', maritalStatus: '', page: 1 });
+                  reload({ gender: '', ageMin: '', ageMax: '', division: '', district: '', education: '', maritalStatus: '', page: 1 });
                 }}>{t('reset')}</Button>
               </form>
             </CardContent>

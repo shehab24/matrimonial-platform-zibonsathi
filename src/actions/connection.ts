@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { actionError } from '@/lib/action-error';
 import { notify } from '@/lib/notifications';
-import { ConnectionStatus } from '@prisma/client';
+import { ConnectionStatus, ProfileStatus } from '@prisma/client';
 
 export async function sendConnectionRequest(receiverProfileId: string) {
   const session = await auth();
@@ -21,12 +21,21 @@ export async function sendConnectionRequest(receiverProfileId: string) {
       return { success: false, error: await actionError('ownProfileNotFound') };
     }
 
+    // Only members with a published biodata can send proposals
+    if (senderProfile.status !== ProfileStatus.APPROVED) {
+      return { success: false, error: await actionError('ownProfileNotApproved') };
+    }
+
     const receiverProfile = await prisma.profile.findUnique({
       where: { id: receiverProfileId },
     });
 
-    if (!receiverProfile) {
+    if (!receiverProfile || receiverProfile.status !== ProfileStatus.APPROVED || !receiverProfile.isVisible) {
       return { success: false, error: await actionError('recipientNotFound') };
+    }
+
+    if (receiverProfile.userId === session.user.id) {
+      return { success: false, error: await actionError('cannotConnectSelf') };
     }
 
     // Check existing connection
@@ -43,15 +52,20 @@ export async function sendConnectionRequest(receiverProfileId: string) {
       return { success: false, error: await actionError('connectionExists') };
     }
 
-    // Transaction with SELECT FOR UPDATE on credit balance
     const result = await prisma.$transaction(async (tx) => {
-      const creditBalance = await tx.creditBalance.findUnique({
-        where: { userId: session.user.id },
+      // Conditional decrement is atomic, so parallel requests can't spend the same credit twice
+      const debited = await tx.creditBalance.updateMany({
+        where: { userId: session.user.id, balance: { gte: 1 } },
+        data: { balance: { decrement: 1 } },
       });
 
-      if (!creditBalance || creditBalance.balance < 1) {
+      if (debited.count === 0) {
         throw new Error('INSUFFICIENT_CREDITS');
       }
+
+      const updatedBalance = await tx.creditBalance.findUniqueOrThrow({
+        where: { userId: session.user.id },
+      });
 
       const connection = await tx.connection.create({
         data: {
@@ -63,17 +77,12 @@ export async function sendConnectionRequest(receiverProfileId: string) {
         },
       });
 
-      const updatedBalance = await tx.creditBalance.update({
-        where: { userId: session.user.id },
-        data: { balance: { decrement: 1 } },
-      });
-
       await tx.creditLedger.create({
         data: {
           userId: session.user.id,
           type: 'DEDUCTION',
           amount: -1,
-          balanceBefore: creditBalance.balance,
+          balanceBefore: updatedBalance.balance + 1,
           balanceAfter: updatedBalance.balance,
           connectionId: connection.id,
           note: 'সংযোগ অনুরোধ পাঠানো হয়েছে',
@@ -88,11 +97,13 @@ export async function sendConnectionRequest(receiverProfileId: string) {
     return { success: true, connection: result };
   } catch (error: unknown) {
     // Only surface the known credit error; anything else gets a generic message
-    const errorMessage = await actionError(
-      error instanceof Error && error.message === 'INSUFFICIENT_CREDITS' ? 'insufficientCredits' : 'connectionFailed'
-    );
-    console.error('sendConnectionRequest error:', error);
-    return { success: false, error: errorMessage };
+    const insufficientCredits = error instanceof Error && error.message === 'INSUFFICIENT_CREDITS';
+    if (!insufficientCredits) console.error('sendConnectionRequest error:', error);
+    return {
+      success: false,
+      error: await actionError(insufficientCredits ? 'insufficientCredits' : 'connectionFailed'),
+      insufficientCredits,
+    };
   }
 }
 

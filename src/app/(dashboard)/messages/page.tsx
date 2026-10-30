@@ -8,11 +8,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Send, MessageSquare } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+
+// How often an open conversation checks for new messages
+const POLL_MS = 10_000;
 
 interface Thread {
   id: string;
+  // id is the other member's profile id
   otherUser: { name: string | null; id: string };
   lastMessage?: string;
+  unread: number;
 }
 
 interface Message {
@@ -39,7 +45,12 @@ export default function MessagesPage() {
       const res = await fetch('/api/connections/accepted');
       if (res.ok) {
         const data = await res.json();
-        setThreads(data.threads ?? []);
+        const loaded: Thread[] = data.threads ?? [];
+        setThreads(loaded);
+        // Arriving from a biodata's "message" button (?profile=<id>) opens that conversation
+        const profileId = new URLSearchParams(window.location.search).get('profile');
+        const match = profileId && loaded.find(th => th.otherUser.id === profileId);
+        if (match) setSelectedThread(match.id);
       }
       setIsLoading(false);
     };
@@ -47,16 +58,22 @@ export default function MessagesPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedThread) {
-      const loadMessages = async () => {
-        const res = await fetch(`/api/messages/${selectedThread}`);
-        if (res.ok) {
-          const data = await res.json();
-          setMessages(data.messages ?? []);
-        }
-      };
-      loadMessages();
-    }
+    if (!selectedThread) return;
+    let cancelled = false;
+    const loadMessages = async () => {
+      const res = await fetch(`/api/messages/${selectedThread}`);
+      if (res.ok && !cancelled) {
+        const data = await res.json();
+        setMessages(data.messages ?? []);
+        setThreads(prev => prev.map(th => (th.id === selectedThread ? { ...th, unread: 0 } : th)));
+      }
+    };
+    loadMessages();
+    const timer = setInterval(loadMessages, POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [selectedThread]);
 
   useEffect(() => {
@@ -75,6 +92,11 @@ export default function MessagesPage() {
     if (res.ok) {
       const data = await res.json();
       setMessages(prev => [...prev, data.message]);
+      setThreads(prev => prev.map(th => (th.id === selectedThread ? { ...th, lastMessage: body } : th)));
+    } else {
+      // Put the text back so the user doesn't lose what they typed
+      setNewMessage(body);
+      toast({ variant: 'destructive', title: tc('error'), description: t('sendFailed') });
     }
   };
 
@@ -109,6 +131,11 @@ export default function MessagesPage() {
                   <p className="font-medium text-gray-900 truncate">{thread.otherUser.name ?? tc('unknown')}</p>
                   {thread.lastMessage && <p className="text-sm text-gray-500 truncate">{thread.lastMessage}</p>}
                 </div>
+                {thread.unread > 0 && (
+                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-green-700 text-white text-xs flex items-center justify-center">
+                    {thread.unread}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -136,8 +163,9 @@ export default function MessagesPage() {
                     <Input
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                      onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && sendMessage()}
                       placeholder={t('placeholder')}
+                      maxLength={2000}
                       className="flex-1"
                     />
                     <Button onClick={sendMessage} disabled={!newMessage.trim()}>

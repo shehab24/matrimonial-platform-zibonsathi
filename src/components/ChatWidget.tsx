@@ -58,9 +58,9 @@ export default function ChatWidget() {
       .catch(() => {});
   }, []);
 
-  // Show welcome message when chat opens
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
+  // Show welcome message the first time the chat opens
+  const toggleOpen = () => {
+    if (!isOpen && messages.length === 0) {
       setMessages([
         {
           text: '👋 স্বাগতম! জীবনসাথী সাপোর্টে কিভাবে সাহায্য করতে পারি?',
@@ -69,7 +69,8 @@ export default function ChatWidget() {
         },
       ]);
     }
-  }, [isOpen, messages.length]);
+    setIsOpen(!isOpen);
+  };
 
   const openWhatsApp = (name: string, phone: string) => {
     if (!whatsappNumber) {
@@ -257,7 +258,7 @@ export default function ChatWidget() {
 
       {/* Toggle Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleOpen}
         className="w-14 h-14 rounded-full bg-rose-600 border-none cursor-pointer shadow-lg flex items-center justify-center transition-transform hover:scale-105 hover:bg-rose-700"
       >
         <svg className="w-7 h-7 fill-white" viewBox="0 0 24 24">

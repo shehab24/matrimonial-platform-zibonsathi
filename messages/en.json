@@ -269,7 +269,8 @@
     "noConnections": "No connections",
     "noConnectionsHint": "Send messages to your accepted connections",
     "selectThread": "Select a conversation",
-    "placeholder": "Write a message..."
+    "placeholder": "Write a message...",
+    "sendFailed": "Message could not be sent. Please try again."
   },
   "credits": {
     "title": "Credits",
@@ -455,7 +456,25 @@
     "loginPrompt": "Log in to send a contact request or add to favorites",
     "login": "Log in",
     "register": "Register",
-    "bangladesh": "Bangladesh"
+    "bangladesh": "Bangladesh",
+    "requestSentToast": "Proposal sent",
+    "getCredits": "Get credits",
+    "report": "Report",
+    "reportTitle": "Report this biodata",
+    "reportBody": "Tell us what is wrong. Your report is confidential and only seen by our admins.",
+    "reportReason": "Reason",
+    "reportSelectReason": "Select a reason",
+    "reportReasons": {
+      "FAKE_PROFILE": "Fake profile",
+      "INAPPROPRIATE_CONTENT": "Inappropriate information or photo",
+      "HARASSMENT": "Harassment or misbehaviour",
+      "SCAM": "Scam or asking for money",
+      "OTHER": "Other"
+    },
+    "reportDetails": "Details (optional)",
+    "reportSubmit": "Submit report",
+    "reportSent": "Report submitted",
+    "reportSentBody": "Thank you. Our team will review it."
   },
   "errors": {
     "emailTaken": "An account with this email already exists",
@@ -489,7 +508,13 @@
     "nameMin": "Name must be at least 2 characters",
     "invalidEmail": "Enter a valid email",
     "genderRequired": "Select a gender",
-    "alreadyPending": "Your profile is already awaiting review"
+    "alreadyPending": "Your profile is already awaiting review",
+    "profileSuspended": "Your biodata has been suspended by an admin. Please contact support.",
+    "ownProfileNotApproved": "Your biodata must be approved before you can send proposals",
+    "cannotConnectSelf": "You can't send a proposal to yourself",
+    "reportFailed": "Failed to submit the report",
+    "cannotReportSelf": "You can't report yourself",
+    "alreadyReported": "You have already reported this biodata. Our team is reviewing it."
   },
   "notifications": {
     "title": "Notifications",

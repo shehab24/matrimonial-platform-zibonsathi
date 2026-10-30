@@ -2,12 +2,21 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+// Settings anyone may read by key; everything else is admin-only
+const PUBLIC_KEYS = ['whatsapp_number'];
+
 // GET - fetch settings (public for whatsapp number)
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const key = searchParams.get('key');
 
   if (key) {
+    if (!PUBLIC_KEYS.includes(key)) {
+      const session = await auth();
+      if (session?.user?.role !== 'ADMIN') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    }
     const setting = await prisma.siteSetting.findUnique({
       where: { key },
     });

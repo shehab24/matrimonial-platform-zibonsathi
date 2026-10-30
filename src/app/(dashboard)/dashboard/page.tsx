@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { ArrowRight, BadgeCheck, Clock, AlertCircle, FileEdit, Ban as BanIcon, Coins, TrendingUp, Star, Heart, Ban, ShoppingCart, Send, Inbox, ShoppingBag } from 'lucide-react';
 import { auth } from '@/lib/auth';
@@ -28,7 +29,9 @@ const bannerStyle = {
 
 export default async function DashboardPage() {
   const session = await auth();
-  const userId = session!.user.id;
+  // The layout redirects too, but pages render in parallel with it, so don't assume a session
+  if (!session?.user?.id) redirect('/login');
+  const userId = session.user.id;
   const t = await getTranslations('dashboard');
   const nf = new Intl.NumberFormat(intlLocale(await getLocale()));
 

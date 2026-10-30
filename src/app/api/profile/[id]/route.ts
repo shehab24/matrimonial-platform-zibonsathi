@@ -67,6 +67,8 @@ export async function GET(
     photos: profile.photos,
     approvedAt: profile.approvedAt,
     createdAt: profile.createdAt,
+    // Lets the page hide proposal/favorite/report buttons on the viewer's own biodata
+    isOwn: session?.user?.id === profile.userId,
     // NEVER include phoneNumber or guardianPhone unless authorized
     phoneNumber: null as string | null,
     guardianPhone: null as string | null,

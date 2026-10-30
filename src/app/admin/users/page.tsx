@@ -22,14 +22,15 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const load = async () => {
-    setIsLoading(true);
-    const result = await listAllUsers();
+  const show = (result: Awaited<ReturnType<typeof listAllUsers>>) => {
     if (result.success) setUsers((result.users ?? []) as unknown as User[]);
     setIsLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  // Refreshes in place after an action; isLoading only covers the first load
+  const load = async () => show(await listAllUsers());
+
+  useEffect(() => { listAllUsers().then(show); }, []);
 
   const handleToggle = async (userId: string, isSuspended: boolean) => {
     const result = isSuspended ? await restoreUser(userId) : await suspendUser(userId);

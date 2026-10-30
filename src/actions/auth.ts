@@ -9,7 +9,7 @@ import { z } from 'zod';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'nameMin'),
-  email: z.string().email('invalidEmail'),
+  email: z.string().trim().toLowerCase().email('invalidEmail'),
   password: z.string().min(8, 'passwordMin'),
   gender: z.enum(['MALE', 'FEMALE'], { message: 'genderRequired' }),
 });
@@ -26,8 +26,8 @@ export async function registerUser(data: {
       return { success: false, error: await actionError(parsed.error.issues[0].message as ActionErrorKey) };
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: parsed.data.email },
+    const existingUser = await prisma.user.findFirst({
+      where: { email: { equals: parsed.data.email, mode: 'insensitive' } },
     });
     if (existingUser) {
       return { success: false, error: await actionError('emailTaken') };
@@ -103,7 +103,9 @@ export async function verifyEmail(token: string) {
 
 export async function forgotPassword(email: string) {
   try {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: { email: { equals: email.trim(), mode: 'insensitive' } },
+    });
     if (!user) {
       // Return success to prevent email enumeration
       return { success: true };

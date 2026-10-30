@@ -32,13 +32,11 @@ export default function ProfilePage() {
   const to = useTranslations('options');
   const ts = useTranslations('profileStatus');
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profile, setProfile] = useState<Record<string, unknown>>({});
 
-  const loadProfile = useCallback(async () => {
-    setIsLoading(true);
-    const result = await getMyProfile();
+  const showProfile = useCallback((result: Awaited<ReturnType<typeof getMyProfile>>) => {
     if (result.success && result.profile) {
       const p = result.profile as Record<string, unknown>;
       setProfile({
@@ -49,7 +47,9 @@ export default function ProfilePage() {
     setIsLoading(false);
   }, []);
 
-  useEffect(() => { loadProfile(); }, [loadProfile]);
+  const loadProfile = useCallback(async () => showProfile(await getMyProfile()), [showProfile]);
+
+  useEffect(() => { getMyProfile().then(showProfile); }, [showProfile]);
 
   const handleChange = (field: string, value: unknown) => {
     setProfile(prev => ({ ...prev, [field]: value }));
@@ -65,11 +65,14 @@ export default function ProfilePage() {
       toast({ variant: 'destructive', title: tc('error'), description: result.error });
     }
     setIsSaving(false);
+    return result.success;
   };
 
   const handleSubmitApproval = async () => {
     setIsSaving(true);
-    await handleSave();
+    // Don't submit a biodata whose latest edits failed to save
+    if (!(await handleSave())) return;
+    setIsSaving(true);
     const result = await submitForApproval();
     if (result.success) {
       toast({ variant: 'success', title: t('submitted'), description: t('submittedBody') });

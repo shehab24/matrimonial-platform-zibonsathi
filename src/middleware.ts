@@ -6,6 +6,11 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const userRole = req.auth?.user?.role;
 
+  // Logged-in users have no reason to see login/register - send them to the dashboard
+  if ((pathname === '/login' || pathname === '/register') && isLoggedIn) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+
   // Public routes - no auth required
   // /browse and /profile/[id] are public for discovery
   if (pathname.startsWith('/browse') || pathname.match(/^\/profile\/[^/]+$/)) {
@@ -17,7 +22,7 @@ export default auth((req) => {
        pathname.startsWith('/connections') || pathname.startsWith('/dashboard') ||
        pathname.startsWith('/ignored') || pathname.startsWith('/liked-me') || pathname.startsWith('/messages') || 
        pathname.startsWith('/credits') || pathname.startsWith('/favorites') ||
-       pathname.startsWith('/settings') || pathname.startsWith('/notifications')) && !isLoggedIn) {
+       pathname.startsWith('/notifications')) && !isLoggedIn) {
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
@@ -40,13 +45,14 @@ export default auth((req) => {
 
 export const config = {
   matcher: [
+    '/login',
+    '/register',
     '/browse/:path*',
     '/profile/:path*',
     '/connections/:path*',
     '/messages/:path*',
     '/credits/:path*',
     '/favorites/:path*',
-    '/settings/:path*',
     '/dashboard/:path*',
     '/ignored/:path*',
     '/liked-me/:path*',

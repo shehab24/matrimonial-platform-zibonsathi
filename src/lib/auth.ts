@@ -7,12 +7,34 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email(),
   password: z.string().min(8),
   remember: z.enum(["true", "false"]).optional(),
 });
 
 const DAY = 24 * 60 * 60 * 1000;
+
+const ACCOUNT_CHECK_TTL = 60 * 1000;
+const accountCache = new Map<string, { at: number; state: { isSuspended: boolean; role: string } | "gone" }>();
+
+/**
+ * Current suspension/role for a signed-in user, cached briefly per server process.
+ * Returns null when it can't be checked (edge runtime or DB error) so a hiccup never logs people out.
+ */
+async function getAccountState(userId: string) {
+  if (process.env.NEXT_RUNTIME === "edge") return null;
+  const cached = accountCache.get(userId);
+  if (cached && Date.now() - cached.at < ACCOUNT_CHECK_TTL) return cached.state;
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { isSuspended: true, role: true } });
+    const state = user ?? "gone";
+    accountCache.set(userId, { at: Date.now(), state });
+    return state;
+  } catch (error) {
+    console.error("account state check error:", error);
+    return null;
+  }
+}
 
 /** Google login is only offered once its OAuth credentials are configured */
 export const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
@@ -37,8 +59,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email },
+        // Case-insensitive so "Name@Mail.com" and "name@mail.com" are the same account
+        const user = await prisma.user.findFirst({
+          where: { email: { equals: parsed.data.email, mode: "insensitive" } },
         });
 
         if (!user || !user.passwordHash) return null;
@@ -100,6 +123,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Returning null ends the session once its remember-me window has passed
       if (typeof token.sessionExpires === "number" && Date.now() > token.sessionExpires) {
         return null;
+      }
+      // Sessions are JWTs, so suspension, deletion and role changes are re-read from the DB
+      if (typeof token.id === "string") {
+        const account = await getAccountState(token.id);
+        if (account === "gone" || account?.isSuspended) return null;
+        if (account) token.role = account.role;
       }
       return token;
     },

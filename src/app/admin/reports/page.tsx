@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
+import { REPORT_REASON_LABELS } from '@/lib/admin-labels';
 
 interface Report {
   id: string;
@@ -21,14 +22,15 @@ export default function AdminReportsPage() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  const load = async () => {
-    setIsLoading(true);
-    const result = await listReports();
+  const show = (result: Awaited<ReturnType<typeof listReports>>) => {
     if (result.success) setReports((result.reports ?? []) as unknown as Report[]);
     setIsLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  // Refreshes in place after an action; isLoading only covers the first load
+  const load = async () => show(await listReports());
+
+  useEffect(() => { listReports().then(show); }, []);
 
   const handleResolve = async (reportId: string) => {
     const result = await resolveReport(reportId, notes[reportId] ?? '');
@@ -60,7 +62,7 @@ export default function AdminReportsPage() {
               <CardContent className="pt-6 space-y-3">
                 <div className="flex flex-wrap justify-between gap-2">
                   <div>
-                    <p className="font-semibold text-gray-900">{report.reason}</p>
+                    <p className="font-semibold text-gray-900">{REPORT_REASON_LABELS[report.reason] ?? report.reason}</p>
                     <p className="text-sm text-gray-500">
                       রিপোর্টকারী: {report.submitter.name ?? report.submitter.email} → অভিযুক্ত: {report.target.name ?? report.target.email}
                     </p>

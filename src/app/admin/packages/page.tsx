@@ -28,14 +28,15 @@ export default function AdminPackagesPage() {
   const [form, setForm] = useState({ name: '', description: '', credits: '', price: '' });
   const [isCreating, setIsCreating] = useState(false);
 
-  const load = async () => {
-    setIsLoading(true);
-    const result = await listCreditPackages();
+  const show = (result: Awaited<ReturnType<typeof listCreditPackages>>) => {
     if (result.success) setPackages((result.packages ?? []) as unknown as CreditPackage[]);
     setIsLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  // Refreshes in place after an action; isLoading only covers the first load
+  const load = async () => show(await listCreditPackages());
+
+  useEffect(() => { listCreditPackages().then(show); }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

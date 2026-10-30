@@ -4,6 +4,48 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { actionError } from '@/lib/action-error';
 import { ProfileStatus } from '@prisma/client';
+import { z } from 'zod';
+
+// Empty inputs arrive as '' (text) or NaN (cleared number fields) - store them as null
+const optText = z.preprocess((v) => (v === '' ? null : v), z.string().trim().max(5000).nullish());
+const optInt = z.preprocess(
+  (v) => (v === '' || v === null || (typeof v === 'number' && Number.isNaN(v)) ? null : Number(v)),
+  z.number().int().min(0).max(50).nullish()
+);
+
+// Only the fields a member may edit. Anything else the client sends (status, oderId,
+// approvedAt, photos, adminNote...) is stripped, so it can't be written through this action
+const profileInputSchema = z.object({
+  displayName: optText,
+  dateOfBirth: optText,
+  gender: z.preprocess((v) => (v === '' ? null : v), z.enum(['MALE', 'FEMALE']).nullish()),
+  division: optText,
+  district: optText,
+  upazila: optText,
+  country: optText,
+  education: optText,
+  educationDetails: optText,
+  occupation: optText,
+  occupationDetails: optText,
+  monthlyIncome: optText,
+  maritalStatus: z.preprocess((v) => (v === '' ? null : v), z.enum(['NEVER_MARRIED', 'DIVORCED', 'WIDOWED']).nullish()),
+  numberOfChildren: optInt,
+  fatherAlive: z.boolean().nullish(),
+  motherAlive: z.boolean().nullish(),
+  siblings: optInt,
+  familyType: optText,
+  familyStatus: optText,
+  prayerHabit: optText,
+  beardOrHijab: optText,
+  mazhab: optText,
+  sect: optText,
+  aboutMe: optText,
+  partnerPreferences: optText,
+  phoneNumber: optText,
+  guardianPhone: optText,
+  showPhoneToConnected: z.boolean().optional(),
+  showGuardianPhoneToConnected: z.boolean().optional(),
+});
 
 export async function getMyProfile() {
   const session = await auth();
@@ -59,14 +101,20 @@ export async function upsertProfile(data: {
     return { success: false, error: await actionError('notAuthorized') };
   }
 
+  const parsed = profileInputSchema.safeParse(data);
+  if (!parsed.success) {
+    return { success: false, error: await actionError('profileSaveFailed') };
+  }
+
   try {
     const existing = await prisma.profile.findUnique({
       where: { userId: session.user.id },
     });
 
+    const dob = parsed.data.dateOfBirth ? new Date(parsed.data.dateOfBirth) : null;
     const updateData: Record<string, unknown> = {
-      ...data,
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+      ...parsed.data,
+      dateOfBirth: dob && !Number.isNaN(dob.getTime()) ? dob : null,
     };
 
     // If profile was APPROVED, reset to DRAFT on update
@@ -108,6 +156,11 @@ export async function submitForApproval() {
 
     if (profile.status === ProfileStatus.PENDING_APPROVAL) {
       return { success: false, error: await actionError('alreadyPending') };
+    }
+
+    // A biodata suspended by an admin stays hidden until an admin restores it
+    if (profile.status === ProfileStatus.SUSPENDED) {
+      return { success: false, error: await actionError('profileSuspended') };
     }
 
     await prisma.profile.update({

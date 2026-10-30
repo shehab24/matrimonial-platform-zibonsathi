@@ -6,6 +6,10 @@ import { ProfileStatus, ReportStatus } from '@prisma/client';
 import { assignBiodataId } from '@/lib/biodata-id';
 import { notify } from '@/lib/notifications';
 
+const APPROVAL_BONUS_CREDITS = 1;
+// Also identifies the grant in the ledger, so keep it stable once users have received it
+const APPROVAL_BONUS_NOTE = 'বায়োডাটা অনুমোদনের বোনাস - ১টি ফ্রি সংযোগ';
+
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== 'ADMIN') {
@@ -58,14 +62,41 @@ export async function approveProfile(profileId: string) {
     // Assign biodata ID if not already assigned
     const biodataId = await assignBiodataId(profileId);
 
-    const profile = await prisma.profile.update({
-      where: { id: profileId },
-      data: {
-        status: ProfileStatus.APPROVED,
-        approvedAt: new Date(),
-        approvedBy: session.user.id,
-        oderId: biodataId,
-      },
+    const profile = await prisma.$transaction(async (tx) => {
+      const approved = await tx.profile.update({
+        where: { id: profileId },
+        data: {
+          status: ProfileStatus.APPROVED,
+          approvedAt: new Date(),
+          approvedBy: session.user.id,
+          oderId: biodataId,
+        },
+      });
+
+      // One free connection on the first approval only - re-approving after an edit doesn't grant another
+      const alreadyGranted = await tx.creditLedger.findFirst({
+        where: { userId: approved.userId, type: 'ADJUSTMENT', note: APPROVAL_BONUS_NOTE },
+        select: { id: true },
+      });
+      if (!alreadyGranted) {
+        const balance = await tx.creditBalance.upsert({
+          where: { userId: approved.userId },
+          create: { userId: approved.userId, balance: APPROVAL_BONUS_CREDITS },
+          update: { balance: { increment: APPROVAL_BONUS_CREDITS } },
+        });
+        await tx.creditLedger.create({
+          data: {
+            userId: approved.userId,
+            type: 'ADJUSTMENT',
+            amount: APPROVAL_BONUS_CREDITS,
+            balanceBefore: balance.balance - APPROVAL_BONUS_CREDITS,
+            balanceAfter: balance.balance,
+            note: APPROVAL_BONUS_NOTE,
+          },
+        });
+      }
+
+      return approved;
     });
 
     await notify(profile.userId, 'PROFILE_APPROVED');

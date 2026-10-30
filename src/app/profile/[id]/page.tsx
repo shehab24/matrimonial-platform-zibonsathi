@@ -8,14 +8,23 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  User, MapPin, GraduationCap, Briefcase, Heart, Phone, 
-  Calendar, Users, Home, BookOpen, ArrowLeft, Star, Ban,
-  MessageCircle, Send, Check, X, Loader2
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { ToastAction } from '@/components/ui/toast';
+import { toast } from '@/hooks/use-toast';
+import {
+  User, MapPin, GraduationCap, Phone,
+  Users, BookOpen, ArrowLeft, Star, Ban,
+  MessageCircle, Send, Loader2, Flag
 } from 'lucide-react';
 import { toggleFavorite, checkFavoriteStatus } from '@/actions/favorite';
 import { toggleIgnore, checkIgnoreStatus } from '@/actions/ignore';
 import { sendConnectionRequest, checkConnectionStatus } from '@/actions/connection';
+import { reportProfile } from '@/actions/report';
+import { REPORT_REASONS } from '@/lib/constants';
 
 interface ProfileData {
   id: string;
@@ -51,6 +60,7 @@ interface ProfileData {
   guardianPhone: string | null;
   approvedAt: string | null;
   createdAt: string | null;
+  isOwn: boolean;
 }
 
 function calcAge(dob: string | null): number | null {
@@ -71,7 +81,7 @@ export default function ProfileDetailPage() {
   const genderLabel = (gender: string) => (gender === 'MALE' ? tc('male') : gender === 'FEMALE' ? tc('female') : gender);
   const params = useParams();
   const router = useRouter();
-  const { data: session, status: sessionStatus } = useSession();
+  const { status: sessionStatus } = useSession();
   const profileId = params.id as string;
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -82,6 +92,9 @@ export default function ProfileDetailPage() {
   const [isIgnored, setIsIgnored] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<string>('');
+  const [reportDetails, setReportDetails] = useState('');
 
   useEffect(() => {
     async function fetchProfile() {
@@ -128,6 +141,8 @@ export default function ProfileDetailPage() {
     const result = await toggleFavorite(profileId);
     if (result.success && result.isFavorite !== undefined) {
       setIsFavorite(result.isFavorite);
+    } else if (!result.success) {
+      toast({ variant: 'destructive', title: tc('error'), description: result.error });
     }
     setActionLoading(null);
   };
@@ -141,6 +156,8 @@ export default function ProfileDetailPage() {
     const result = await toggleIgnore(profileId);
     if (result.success && result.isIgnored !== undefined) {
       setIsIgnored(result.isIgnored);
+    } else if (!result.success) {
+      toast({ variant: 'destructive', title: tc('error'), description: result.error });
     }
     setActionLoading(null);
   };
@@ -154,6 +171,42 @@ export default function ProfileDetailPage() {
     const result = await sendConnectionRequest(profileId);
     if (result.success) {
       setConnectionStatus('PENDING');
+      toast({ variant: 'success', title: t('requestSentToast') });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: tc('error'),
+        description: result.error,
+        // Out of credits: point straight to where more can be bought
+        action: 'insufficientCredits' in result && result.insufficientCredits ? (
+          <ToastAction altText={t('getCredits')} onClick={() => router.push('/credits')}>
+            {t('getCredits')}
+          </ToastAction>
+        ) : undefined,
+      });
+    }
+    setActionLoading(null);
+  };
+
+  const openReport = () => {
+    if (sessionStatus !== 'authenticated') {
+      router.push(`/login?callbackUrl=/profile/${profileId}`);
+      return;
+    }
+    setReportOpen(true);
+  };
+
+  const handleReport = async () => {
+    if (!reportReason) return;
+    setActionLoading('report');
+    const result = await reportProfile({ profileId, reason: reportReason, details: reportDetails });
+    if (result.success) {
+      toast({ variant: 'success', title: t('reportSent'), description: t('reportSentBody') });
+      setReportOpen(false);
+      setReportReason('');
+      setReportDetails('');
+    } else {
+      toast({ variant: 'destructive', title: tc('error'), description: result.error });
     }
     setActionLoading(null);
   };
@@ -230,7 +283,8 @@ export default function ProfileDetailPage() {
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - not shown on the viewer's own biodata */}
+        {!profile.isOwn && (
         <CardContent className="p-4 bg-gray-50 border-t">
           <div className="flex flex-wrap gap-3">
             <Button
@@ -293,9 +347,56 @@ export default function ProfileDetailPage() {
                 </Button>
               </Link>
             )}
+
+            <Button size="sm" variant="ghost" onClick={openReport} className="ml-auto text-gray-500 hover:text-red-600">
+              <Flag className="h-4 w-4 mr-2" />
+              {t('report')}
+            </Button>
           </div>
         </CardContent>
+        )}
       </Card>
+
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('reportTitle')}</DialogTitle>
+            <DialogDescription>{t('reportBody')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="report-reason">{t('reportReason')}</Label>
+              <select
+                id="report-reason"
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700"
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+              >
+                <option value="">{t('reportSelectReason')}</option>
+                {REPORT_REASONS.map((reason) => (
+                  <option key={reason} value={reason}>{t(`reportReasons.${reason}`)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="report-details">{t('reportDetails')}</Label>
+              <Textarea
+                id="report-details"
+                value={reportDetails}
+                maxLength={1000}
+                onChange={(e) => setReportDetails(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReportOpen(false)}>{tc('cancel')}</Button>
+            <Button variant="destructive" onClick={handleReport} disabled={!reportReason || actionLoading === 'report'}>
+              {actionLoading === 'report' && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {t('reportSubmit')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Profile Details Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

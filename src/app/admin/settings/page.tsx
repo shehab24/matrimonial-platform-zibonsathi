@@ -10,20 +10,19 @@ export default function AdminSettingsPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        setWhatsappNumber(data.whatsapp_number || '');
+      } catch {
+        setMessage({ type: 'error', text: 'সেটিংস লোড করতে সমস্যা হয়েছে' });
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchSettings();
   }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const res = await fetch('/api/settings');
-      const data = await res.json();
-      setWhatsappNumber(data.whatsapp_number || '');
-    } catch {
-      setMessage({ type: 'error', text: 'সেটিংস লোড করতে সমস্যা হয়েছে' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const saveWhatsapp = async () => {
     setSaving(true);
