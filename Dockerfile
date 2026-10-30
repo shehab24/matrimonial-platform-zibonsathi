@@ -10,6 +10,10 @@ RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG AUTH_GOOGLE_ID
+ARG AUTH_GOOGLE_SECRET
+ENV AUTH_GOOGLE_ID=$AUTH_GOOGLE_ID
+ENV AUTH_GOOGLE_SECRET=$AUTH_GOOGLE_SECRET
 RUN npx prisma generate
 RUN npm run build
 

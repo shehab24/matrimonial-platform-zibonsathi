@@ -3,16 +3,21 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - AUTH_GOOGLE_ID=${AUTH_GOOGLE_ID}
+        - AUTH_GOOGLE_SECRET=${AUTH_GOOGLE_SECRET}
     ports:
       - "3010:3000"
     environment:
       HOSTNAME: "0.0.0.0"
-      DATABASE_URL: ${DATABASE_URL:-postgresql://zibonsathi:zibonsathi@db:5432/zibonsathi}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://zibonsathi:***@db:5432/zibonsathi}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       RESEND_API_KEY: ${RESEND_API_KEY}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@zibonsathi.com}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET}
     depends_on:
       db:
         condition: service_healthy
