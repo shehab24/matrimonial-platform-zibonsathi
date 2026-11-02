@@ -26,17 +26,31 @@ async function getStats() {
   }
 }
 
+// Admins can hide the stats while the counts are still low (Admin → Settings)
+async function getShowStats() {
+  try {
+    const setting = await prisma.siteSetting.findUnique({ where: { key: 'show_home_stats' } });
+    return setting?.value !== 'false';
+  } catch (error) {
+    console.error('home stats setting error:', error);
+    return true;
+  }
+}
+
 export default async function HomePage() {
-  const stats = await getStats();
+  const showStats = await getShowStats();
+  const stats = showStats ? await getStats() : null;
   const t = await getTranslations('home');
   const nf = new Intl.NumberFormat(intlLocale(await getLocale()));
 
-  const statCards = [
-    { label: t('statTotal'), value: stats.total, icon: Users },
-    { label: t('statMale'), value: stats.male, icon: User },
-    { label: t('statFemale'), value: stats.female, icon: UserRound },
-    { label: t('statMatches'), value: stats.matches, icon: Heart },
-  ];
+  const statCards = stats
+    ? [
+        { label: t('statTotal'), value: stats.total, icon: Users },
+        { label: t('statMale'), value: stats.male, icon: User },
+        { label: t('statFemale'), value: stats.female, icon: UserRound },
+        { label: t('statMatches'), value: stats.matches, icon: Heart },
+      ]
+    : [];
 
   const steps = [
     { icon: UserPlus, title: t('step1Title'), description: t('step1Body') },
@@ -50,7 +64,7 @@ export default async function HomePage() {
       {/* Hero + quick search */}
       <section className="relative overflow-hidden bg-gradient-to-b from-green-50 via-gray-50 to-teal-50">
         <HeroDecorations />
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-24 pb-32 text-center">
+        <div className={`relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-24 ${showStats ? 'pb-32' : 'pb-16'} text-center`}>
           <h1 className="font-extrabold leading-[1.15] tracking-tight">
             <span className="block text-4xl md:text-6xl text-gray-900">{t('heroTitle1')}</span>
             <span className="mt-2 block text-5xl md:text-7xl bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent dark:from-green-400 dark:via-emerald-400 dark:to-teal-300">
@@ -71,6 +85,7 @@ export default async function HomePage() {
       </section>
 
       {/* Stats */}
+      {showStats && (
       <section className="relative -mt-14 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
           {statCards.map(({ label, value, icon: Icon }) => (
@@ -82,6 +97,7 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+      )}
 
       {/* Create biodata CTA */}
       <section className="py-16">
