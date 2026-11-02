@@ -87,7 +87,7 @@ export async function POST(request: Request) {
           email: placeholderEmail,
           name: data.displayName || data.name || 'Imported Biodata',
           gender: gender,
-          emailVerified: false,
+          emailVerified: null,
           // Mark as imported
         },
       });

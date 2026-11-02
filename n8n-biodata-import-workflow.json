@@ -1,0 +1,226 @@
+{
+  "name": "Zibonsathi Biodata Import",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"]
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "zibonsathi-biodata"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-photo",
+              "leftValue": "={{ $json.message.photo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "check-image",
+      "name": "Has Image?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "fileId": "={{ $json.message.photo.slice(-1)[0].file_id }}"
+      },
+      "id": "get-file",
+      "name": "Get Telegram File",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [690, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 2048,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image\",\n          \"source\": {\n            \"type\": \"url\",\n            \"url\": \"{{ $json.result.file_path ? 'https://api.telegram.org/file/bot' + $credentials.telegramApi.token + '/' + $json.result.file_path : '' }}\"\n          }\n        },\n        {\n          \"type\": \"text\",\n          \"text\": \"Extract biodata information from this image. Return a JSON object with these fields (use null for missing fields):\\n- name (string)\\n- gender (\\\"male\\\" or \\\"female\\\")\\n- dateOfBirth (YYYY-MM-DD format)\\n- division, district, upazila (location)\\n- education, occupation, monthlyIncome\\n- maritalStatus (\\\"never_married\\\", \\\"divorced\\\", \\\"widowed\\\")\\n- fatherAlive, motherAlive (boolean or \\\"yes\\\"/\\\"no\\\")\\n- siblings (number)\\n- prayerHabit, beardOrHijab, mazhab (religious)\\n- aboutMe, partnerPreferences (text)\\n- phoneNumber, guardianPhone\\n\\nReturn ONLY valid JSON, no explanation.\"\n        }\n      ]\n    }\n  ]\n}"
+      },
+      "id": "claude-vision",
+      "name": "Claude Vision Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [910, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anthropic-header",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Claude's response and extract JSON\nconst response = $input.first().json;\nconst content = response.content[0].text;\n\n// Try to extract JSON from response\nlet biodata;\ntry {\n  // Find JSON in the response\n  const jsonMatch = content.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    biodata = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found in response');\n  }\n} catch (e) {\n  return [{ json: { error: 'Failed to parse biodata', raw: content } }];\n}\n\n// Normalize field names\nconst normalized = {\n  displayName: biodata.name || biodata.displayName || null,\n  gender: biodata.gender || null,\n  dateOfBirth: biodata.dateOfBirth || biodata.dob || null,\n  division: biodata.division || null,\n  district: biodata.district || null,\n  upazila: biodata.upazila || biodata.area || null,\n  education: biodata.education || null,\n  occupation: biodata.occupation || null,\n  monthlyIncome: biodata.monthlyIncome || biodata.income || null,\n  maritalStatus: biodata.maritalStatus || null,\n  fatherAlive: biodata.fatherAlive || null,\n  motherAlive: biodata.motherAlive || null,\n  siblings: biodata.siblings || null,\n  prayerHabit: biodata.prayerHabit || null,\n  beardOrHijab: biodata.beardOrHijab || biodata.beard || biodata.hijab || null,\n  mazhab: biodata.mazhab || null,\n  aboutMe: biodata.aboutMe || biodata.about || null,\n  partnerPreferences: biodata.partnerPreferences || null,\n  phoneNumber: biodata.phoneNumber || biodata.phone || null,\n  guardianPhone: biodata.guardianPhone || null,\n  source: 'telegram-bot'\n};\n\nreturn [{ json: normalized }];"
+      },
+      "id": "parse-response",
+      "name": "Parse Claude Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1130, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zibonsathi.com/api/webhook/import-biodata",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "save-biodata",
+      "name": "Save to Zibonsathi",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1350, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zibonsathi-api",
+          "name": "Zibonsathi API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=✅ বায়োডাটা সেভ হয়েছে!\n\n📋 বায়োডাটা আইডি: {{ $json.data.biodataId }}\n👤 নাম: {{ $json.data.name || 'N/A' }}\n⚧ লিঙ্গ: {{ $json.data.gender === 'MALE' ? 'পুরুষ' : 'মহিলা' }}\n📊 স্ট্যাটাস: অপেক্ষমাণ (অ্যাডমিন অনুমোদনের জন্য)",
+        "additionalFields": {}
+      },
+      "id": "send-success",
+      "name": "Send Success Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1570, 200]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "দয়া করে একটি বায়োডাটার ছবি পাঠান। আমি তথ্য এক্সট্রাক্ট করে সেভ করব।",
+        "additionalFields": {}
+      },
+      "id": "send-help",
+      "name": "Send Help Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [690, 400]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Has Image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Image?": {
+      "main": [
+        [
+          {
+            "node": "Get Telegram File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Help Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Telegram File": {
+      "main": [
+        [
+          {
+            "node": "Claude Vision Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Vision Extract": {
+      "main": [
+        [
+          {
+            "node": "Parse Claude Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Claude Response": {
+      "main": [
+        [
+          {
+            "node": "Save to Zibonsathi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Zibonsathi": {
+      "main": [
+        [
+          {
+            "node": "Send Success Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
