@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+import { adminBiodataHref } from '@/lib/biodata-url';
 import Link from 'next/link';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Gender, Prisma, ProfileStatus } from '@prisma/client';
@@ -142,7 +143,7 @@ export default async function AdminBiodatasPage({ searchParams }: { searchParams
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{bnDate(p.updatedAt)}</td>
                     <td className="px-4 py-3 text-right">
                       <Button size="sm" variant={p.status === ProfileStatus.PENDING_APPROVAL ? 'default' : 'outline'} asChild>
-                        <Link href={`/admin/biodatas/${p.id}`}>{p.status === ProfileStatus.PENDING_APPROVAL ? 'রিভিউ করুন' : 'দেখুন'}</Link>
+                        <Link href={adminBiodataHref(p)}>{p.status === ProfileStatus.PENDING_APPROVAL ? 'রিভিউ করুন' : 'দেখুন'}</Link>
                       </Button>
                     </td>
                   </tr>

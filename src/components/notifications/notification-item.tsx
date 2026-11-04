@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { Heart, UserPlus, UserCheck, UserX, BadgeCheck, AlertCircle } from 'lucide-react';
 import type { NotificationType } from '@prisma/client';
+import { biodataHref } from '@/lib/biodata-url';
 
 export interface NotificationData {
   id: string;
@@ -26,7 +27,7 @@ const icons = {
 export function notificationHref(n: NotificationData) {
   switch (n.type) {
     case 'FAVORITED':
-      return n.actorProfile?.oderId ? `/profile/${n.actorProfile.id}` : '/liked-me';
+      return n.actorProfile?.oderId ? biodataHref(n.actorProfile) : '/liked-me';
     case 'CONNECTION_REQUEST':
       return '/connections/received';
     case 'CONNECTION_ACCEPTED':

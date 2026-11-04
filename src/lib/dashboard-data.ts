@@ -5,7 +5,7 @@ import { prisma } from './prisma';
 export const getMyProfileSummary = cache((userId: string) =>
   prisma.profile.findUnique({
     where: { userId },
-    select: { id: true, status: true, gender: true, oderId: true },
+    select: { id: true, status: true, gender: true, oderId: true, phoneNumber: true },
   })
 );
 

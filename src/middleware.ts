@@ -12,7 +12,7 @@ export default auth((req) => {
   }
 
   // Public routes - no auth required
-  // /browse and /profile/[id] are public for discovery
+  // /browse and /profile/[id] are public for discovery (/biodata/[no] is outside the matcher, so public too)
   if (pathname.startsWith('/browse') || pathname.match(/^\/profile\/[^/]+$/)) {
     return NextResponse.next();
   }
@@ -22,7 +22,8 @@ export default auth((req) => {
        pathname.startsWith('/connections') || pathname.startsWith('/dashboard') ||
        pathname.startsWith('/ignored') || pathname.startsWith('/liked-me') || pathname.startsWith('/messages') || 
        pathname.startsWith('/credits') || pathname.startsWith('/favorites') ||
-       pathname.startsWith('/notifications')) && !isLoggedIn) {
+       pathname.startsWith('/notifications') || pathname.startsWith('/settings') ||
+       pathname.startsWith('/delete-biodata') || pathname.startsWith('/complete-account')) && !isLoggedIn) {
     const loginUrl = new URL('/login', req.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
@@ -57,6 +58,9 @@ export const config = {
     '/ignored/:path*',
     '/liked-me/:path*',
     '/notifications/:path*',
+    '/settings/:path*',
+    '/delete-biodata/:path*',
+    '/complete-account/:path*',
     '/admin/:path*',
   ],
 };

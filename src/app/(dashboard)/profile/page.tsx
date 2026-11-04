@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { DIVISIONS } from '@/lib/constants';
+import { DIVISIONS, EDUCATION_OPTIONS, OCCUPATION_OPTIONS } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,9 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { getMyProfile, upsertProfile, submitForApproval } from '@/actions/profile';
-import { CheckCircle, ChevronRight, ChevronLeft, Send } from 'lucide-react';
+import { CheckCircle, ChevronRight, ChevronLeft, Send, HandHeart, ShieldAlert } from 'lucide-react';
 
-const steps = ['basic', 'education', 'family', 'religious', 'about', 'contact'] as const;
+const steps = ['basic', 'education', 'family', 'religious', 'about', 'contact', 'pledge'] as const;
+
+// Quick picks for the hadia pledge (Taka); any other amount can be typed in
+const HADIA_PRESETS = [500, 1000, 2000, 5000];
 
 const statusLabels: Record<string, { label: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'; variant: 'default' | 'secondary' | 'destructive' | 'warning' | 'success' | 'outline' }> = {
   DRAFT: { label: 'DRAFT', variant: 'secondary' },
@@ -35,6 +38,9 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profile, setProfile] = useState<Record<string, unknown>>({});
+  const [customHadia, setCustomHadia] = useState(false);
+  // Gender is fixed once saved (it decides the ZBM/ZBF biodata number)
+  const [genderLocked, setGenderLocked] = useState(false);
 
   const showProfile = useCallback((result: Awaited<ReturnType<typeof getMyProfile>>) => {
     if (result.success && result.profile) {
@@ -42,7 +48,10 @@ export default function ProfilePage() {
       setProfile({
         ...p,
         dateOfBirth: p.dateOfBirth ? new Date(p.dateOfBirth as string).toISOString().split('T')[0] : '',
+        removalPledgeAccepted: !!p.removalPledgeAcceptedAt,
       });
+      setCustomHadia(p.hadiaPledge != null && !HADIA_PRESETS.includes(p.hadiaPledge as number));
+      setGenderLocked(!!p.gender);
     }
     setIsLoading(false);
   }, []);
@@ -84,6 +93,7 @@ export default function ProfilePage() {
   };
 
   const profileStatus = (profile.status as string) || 'DRAFT';
+  const pledgeComplete = profile.hadiaPledge != null && !!profile.removalPledgeAccepted;
   const statusInfo = statusLabels[profileStatus] || statusLabels['DRAFT'];
 
   if (isLoading) {
@@ -134,7 +144,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="space-y-2">
                   <Label>{t('gender')}</Label>
-                  <select className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700" value={(profile.gender as string) || ''} onChange={e => handleChange('gender', e.target.value)}>
+                  <select disabled={genderLocked} className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700 disabled:cursor-not-allowed disabled:bg-gray-100" value={(profile.gender as string) || ''} onChange={e => handleChange('gender', e.target.value)}>
                     <option value="">{t('select')}</option>
                     <option value="MALE">{tc('male')}</option>
                     <option value="FEMALE">{tc('female')}</option>
@@ -166,7 +176,7 @@ export default function ProfilePage() {
                   <Label>{t('education')}</Label>
                   <select className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700" value={(profile.education as string) || ''} onChange={e => handleChange('education', e.target.value)}>
                     <option value="">{t('select')}</option>
-                    {['এসএসসি', 'এইচএসসি', 'ডিপ্লোমা', 'স্নাতক', 'স্নাতকোত্তর', 'পিএইচডি', 'হাফেজ', 'আলিম', 'ফাজিল', 'কামিল'].map(e => <option key={e} value={e}>{to(e)}</option>)}
+                    {EDUCATION_OPTIONS.map(e => <option key={e} value={e}>{to(e)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -177,7 +187,7 @@ export default function ProfilePage() {
                   <Label>{t('occupation')}</Label>
                   <select className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700" value={(profile.occupation as string) || ''} onChange={e => handleChange('occupation', e.target.value)}>
                     <option value="">{t('select')}</option>
-                    {['চাকরি', 'ব্যবসা', 'শিক্ষক', 'ডাক্তার', 'ইঞ্জিনিয়ার', 'আইনজীবী', 'ছাত্র/ছাত্রী', 'গৃহিণী', 'প্রবাসী', 'অন্যান্য'].map(o => <option key={o} value={o}>{to(o)}</option>)}
+                    {OCCUPATION_OPTIONS.map(o => <option key={o} value={o}>{to(o)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -299,26 +309,88 @@ export default function ProfilePage() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>{t('phone')}</Label>
-                  <Input value={(profile.phoneNumber as string) || ''} onChange={e => handleChange('phoneNumber', e.target.value)} placeholder="01XXXXXXXXX" />
+                  <Label>{t('phone')} <span className="text-red-600">*</span></Label>
+                  <Input type="tel" required value={(profile.phoneNumber as string) || ''} onChange={e => handleChange('phoneNumber', e.target.value)} placeholder="01XXXXXXXXX" />
                 </div>
                 <div className="space-y-2">
                   <Label>{t('guardianPhone')}</Label>
                   <Input value={(profile.guardianPhone as string) || ''} onChange={e => handleChange('guardianPhone', e.target.value)} placeholder="01XXXXXXXXX" />
                 </div>
               </div>
-              <div className="space-y-3 pt-2">
-                <h3 className="font-medium text-gray-700">{t('privacy')}</h3>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={(profile.showPhoneToConnected as boolean) ?? true} onChange={e => handleChange('showPhoneToConnected', e.target.checked)} />
-                  <span className="text-sm">{t('showPhone')}</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={(profile.showGuardianPhoneToConnected as boolean) ?? true} onChange={e => handleChange('showGuardianPhoneToConnected', e.target.checked)} />
-                  <span className="text-sm">{t('showGuardianPhone')}</span>
-                </label>
-              </div>
+              <p className="text-sm text-gray-500">{t('contactNote')}</p>
             </>
+          )}
+
+          {currentStep === 6 && (
+            <div className="space-y-6">
+              <section className="rounded-xl border border-green-200 bg-green-50/60 p-5">
+                <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                  <HandHeart className="h-5 w-5 text-green-700" />
+                  {t('hadiaTitle')}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">{t('hadiaBody')}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {HADIA_PRESETS.map(amount => {
+                    const active = !customHadia && profile.hadiaPledge === amount;
+                    return (
+                      <button
+                        key={amount}
+                        type="button"
+                        onClick={() => { setCustomHadia(false); handleChange('hadiaPledge', amount); }}
+                        aria-pressed={active}
+                        className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                          active ? 'border-green-700 bg-green-700 text-white' : 'border-gray-300 bg-white text-gray-700 hover:border-green-600'
+                        }`}
+                      >
+                        {t('taka', { amount })}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => { setCustomHadia(true); handleChange('hadiaPledge', null); }}
+                    aria-pressed={customHadia}
+                    className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                      customHadia ? 'border-green-700 bg-green-700 text-white' : 'border-gray-300 bg-white text-gray-700 hover:border-green-600'
+                    }`}
+                  >
+                    {t('hadiaOther')}
+                  </button>
+                </div>
+                {customHadia && (
+                  <div className="mt-3 max-w-xs space-y-2">
+                    <Label>{t('hadiaAmount')}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      value={profile.hadiaPledge == null ? '' : String(profile.hadiaPledge)}
+                      onChange={e => handleChange('hadiaPledge', e.target.value === '' ? null : Number(e.target.value))}
+                      placeholder={t('hadiaAmountPlaceholder')}
+                    />
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-xl border border-yellow-200 bg-yellow-100/50 p-5">
+                <h3 className="flex items-center gap-2 font-semibold text-gray-900">
+                  <ShieldAlert className="h-5 w-5 text-yellow-600" />
+                  {t('removalTitle')}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-700">{t('removalBody')}</p>
+                <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg bg-white p-3 ring-1 ring-gray-200">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 accent-green-700"
+                    checked={!!profile.removalPledgeAccepted}
+                    onChange={e => handleChange('removalPledgeAccepted', e.target.checked)}
+                  />
+                  <span className="text-sm font-medium text-gray-900">{t('removalAgree')}</span>
+                </label>
+              </section>
+
+              {!pledgeComplete && <p className="text-sm text-red-600">{t('pledgeRequired')}</p>}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -333,7 +405,7 @@ export default function ProfilePage() {
             {isSaving ? t('saving') : tc('save')}
           </Button>
           {currentStep === steps.length - 1 ? (
-            <Button onClick={handleSubmitApproval} disabled={isSaving || profileStatus === 'PENDING_APPROVAL'}>
+            <Button onClick={handleSubmitApproval} disabled={isSaving || profileStatus === 'PENDING_APPROVAL' || !pledgeComplete}>
               <Send className="h-4 w-4 mr-1" /> {t('submit')}
             </Button>
           ) : (

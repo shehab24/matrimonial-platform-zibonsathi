@@ -1,31 +1,13 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { DIVISIONS } from '@/lib/constants';
-import Link from 'next/link';
 import { browseProfiles } from '@/actions/browse';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { MapPin, GraduationCap, Briefcase, User, ChevronLeft, ChevronRight } from 'lucide-react';
-
-interface Profile {
-  id: string;
-  oderId: string | null;
-  displayName: string | null;
-  dateOfBirth: string | null;
-  gender: string | null;
-  division: string | null;
-  district: string | null;
-  education: string | null;
-  occupation: string | null;
-  maritalStatus: string | null;
-  photos: { url: string }[];
-}
+import { AGE_MAX, AGE_MIN, BiodataFilters, EMPTY_FILTERS, countActiveFilters, filtersFromParams, filtersToParams, type BrowseFilterState } from '@/components/browse/biodata-filters';
+import { BiodataListCard, type BrowseProfile } from '@/components/browse/biodata-list-card';
+import { User, ChevronLeft, ChevronRight, SlidersHorizontal, X } from 'lucide-react';
 
 interface Pagination {
   page: number;
@@ -33,13 +15,10 @@ interface Pagination {
   total: number;
 }
 
-function calcAge(dob: string | null): number | null {
-  if (!dob) return null;
-  const today = new Date();
-  const birth = new Date(dob);
-  const age = today.getFullYear() - birth.getFullYear();
-  return age;
-}
+// Columns keep each card at roughly 360px+ wide; the sidebar takes 320px from lg up
+const GRID = 'grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 min-[94rem]:grid-cols-3';
+
+const SORTS = ['default', 'newest', 'oldest'] as const;
 
 export default function BrowsePage() {
   return (
@@ -52,142 +31,176 @@ export default function BrowsePage() {
 function BrowseContent() {
   const searchParams = useSearchParams();
   const t = useTranslations('browse');
-  const tc = useTranslations('common');
   const tm = useTranslations('maritalStatus');
   const td = useTranslations('divisions');
   const to = useTranslations('options');
   const opt = (value: string | null) => (value && to.has(value) ? to(value) : value);
-  const formatAge = (dob: string | null) => {
-    const age = calcAge(dob);
-    return age === null ? '' : tc('years', { age });
-  };
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const router = useRouter();
+  const [profiles, setProfiles] = useState<BrowseProfile[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, totalPages: 1, total: 0 });
   // Start in the loading state so the empty "no profiles" message doesn't flash before the first fetch
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    gender: searchParams.get('gender') ?? '',
-    ageMin: '',
-    ageMax: '',
-    division: searchParams.get('division') ?? '',
-    district: '',
-    education: '',
-    maritalStatus: searchParams.get('maritalStatus') ?? '',
-    page: 1,
-  });
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const fetchProfiles = (f: typeof filters) =>
+  // The URL is the source of truth for applied filters; `draft` holds edits until "Search" is pressed
+  const query = searchParams.toString();
+  const applied = filtersFromParams(searchParams);
+  const sort = SORTS.find(s => s === searchParams.get('sort')) ?? 'default';
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1') || 1);
+  const [draft, setDraft] = useState<BrowseFilterState>(applied);
+
+  // When the URL changes (apply, chip removal, Back), reset the draft and show the loading state
+  const [syncedQuery, setSyncedQuery] = useState(query);
+  if (syncedQuery !== query) {
+    setSyncedQuery(query);
+    setDraft(applied);
+    setIsLoading(true);
+  }
+
+  useEffect(() => {
+    const f = filtersFromParams(new URLSearchParams(query));
+    let cancelled = false;
+    let ageMin = f.ageMin ? parseInt(f.ageMin) : undefined;
+    let ageMax = f.ageMax ? parseInt(f.ageMax) : undefined;
+    if (ageMin && ageMax && ageMin > ageMax) [ageMin, ageMax] = [ageMax, ageMin];
     browseProfiles({
       gender: f.gender || undefined,
-      ageMin: f.ageMin ? parseInt(f.ageMin) : undefined,
-      ageMax: f.ageMax ? parseInt(f.ageMax) : undefined,
-      division: f.division || undefined,
+      ageMin,
+      ageMax,
+      division: f.division,
       district: f.district || undefined,
-      education: f.education || undefined,
-      maritalStatus: f.maritalStatus || undefined,
-      page: f.page,
+      education: f.education,
+      occupation: f.occupation,
+      maritalStatus: f.maritalStatus,
+      mazhab: f.mazhab,
+      familyStatus: f.familyStatus,
+      biodataNo: f.biodataNo || undefined,
+      sort,
+      page,
+    }).then(result => {
+      if (cancelled) return;
+      if (result.success) {
+        setProfiles(result.profiles as unknown as BrowseProfile[]);
+        setPagination(result.pagination as Pagination);
+      }
+      setIsLoading(false);
     });
+    return () => { cancelled = true; };
+  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps -- sort/page are derived from query
 
-  const show = (result: Awaited<ReturnType<typeof browseProfiles>>) => {
-    if (result.success) {
-      setProfiles(result.profiles as unknown as Profile[]);
-      setPagination(result.pagination as Pagination);
-    }
-    setIsLoading(false);
+  const navigate = (f: BrowseFilterState, extra: { sort?: string; page?: number } = {}) => {
+    const params = filtersToParams(f);
+    const nextSort = extra.sort ?? sort;
+    if (nextSort !== 'default') params.set('sort', nextSort);
+    if (extra.page && extra.page > 1) params.set('page', String(extra.page));
+    const qs = params.toString();
+    router.push(qs ? `/browse?${qs}` : '/browse', { scroll: false });
   };
 
-  useEffect(() => { fetchProfiles(filters).then(show); }, []); // eslint-disable-line react-hooks/exhaustive-deps -- initial load only
-
-  // Filter/page changes show the loading state; the initial load already starts in it
-  const reload = async (f: typeof filters) => {
-    setIsLoading(true);
-    show(await fetchProfiles(f));
+  const applyDraft = () => {
+    setMobileOpen(false);
+    navigate(draft);
   };
 
-  const handleFilter = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const newFilters = { ...filters, page: 1 };
-    setFilters(newFilters);
-    reload(newFilters);
+  const resetAll = () => {
+    setDraft(EMPTY_FILTERS);
+    setMobileOpen(false);
+    navigate(EMPTY_FILTERS, { sort: 'default' });
   };
 
-  const changePage = (page: number) => {
-    const newFilters = { ...filters, page };
-    setFilters(newFilters);
-    reload(newFilters);
+  const changePage = (p: number) => {
+    navigate(applied, { page: p });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // One removable chip per applied value, shown above the results
+  const activeChips: { key: string; label: string; remove: BrowseFilterState }[] = [];
+  if (applied.biodataNo) activeChips.push({ key: 'no', label: t('chipBiodataNo', { no: applied.biodataNo }), remove: { ...applied, biodataNo: '' } });
+  if (applied.gender) activeChips.push({ key: 'g', label: applied.gender === 'MALE' ? t('groomBiodata') : t('brideBiodata'), remove: { ...applied, gender: '' } });
+  if (applied.ageMin || applied.ageMax) activeChips.push({
+    key: 'age',
+    label: t('chipAge', { min: Number(applied.ageMin) || AGE_MIN, max: Number(applied.ageMax) || AGE_MAX }),
+    remove: { ...applied, ageMin: '', ageMax: '' },
+  });
+  if (applied.district) activeChips.push({ key: 'd', label: applied.district, remove: { ...applied, district: '' } });
+  const listChip = (key: 'maritalStatus' | 'division' | 'education' | 'occupation' | 'mazhab' | 'familyStatus', label: (v: string) => string) =>
+    applied[key].forEach(v => activeChips.push({ key: `${key}:${v}`, label: label(v), remove: { ...applied, [key]: applied[key].filter(x => x !== v) } }));
+  listChip('maritalStatus', v => (tm.has(v) ? tm(v) : v));
+  listChip('division', v => (td.has(v) ? td(v) : v));
+  listChip('education', v => opt(v) ?? v);
+  listChip('occupation', v => opt(v) ?? v);
+  listChip('mazhab', v => opt(v) ?? v);
+  listChip('familyStatus', v => opt(v) ?? v);
+  const activeCount = countActiveFilters(applied);
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
-        <p className="text-gray-500 mt-1">{isLoading ? '\u00a0' : t('found', { total: pagination.total })}</p>
-      </div>
+    <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
+        {/* Filter Sidebar (desktop) */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-24 flex h-[calc(100vh-7.5rem)] max-h-[860px] flex-col overflow-hidden rounded-2xl border border-gray-200 shadow-sm shadow-gray-900/5">
+            <BiodataFilters value={draft} onChange={setDraft} onApply={applyDraft} onReset={resetAll} className="min-h-0 flex-1" />
+          </div>
+        </aside>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Filter Sidebar */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="font-semibold text-gray-900 mb-4">{t('filterTitle')}</h2>
-              <form onSubmit={handleFilter} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>{t('gender')}</Label>
-                  <select className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={filters.gender} onChange={e => setFilters(f => ({ ...f, gender: e.target.value }))}>
-                    <option value="">{tc('all')}</option>
-                    <option value="MALE">{tc('male')}</option>
-                    <option value="FEMALE">{tc('female')}</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t('ageRange')}</Label>
-                  <div className="flex gap-2">
-                    <Input type="number" placeholder={t('min')} min="18" max="80" value={filters.ageMin} onChange={e => setFilters(f => ({ ...f, ageMin: e.target.value }))} />
-                    <Input type="number" placeholder={t('max')} min="18" max="80" value={filters.ageMax} onChange={e => setFilters(f => ({ ...f, ageMax: e.target.value }))} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t('division')}</Label>
-                  <select className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={filters.division} onChange={e => setFilters(f => ({ ...f, division: e.target.value }))}>
-                    <option value="">{t('allDivisions')}</option>
-                    {DIVISIONS.map(d => <option key={d} value={d}>{td(d)}</option>)}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t('district')}</Label>
-                  <Input placeholder={t('districtPlaceholder')} value={filters.district} onChange={e => setFilters(f => ({ ...f, district: e.target.value }))} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t('maritalStatus')}</Label>
-                  <select className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm" value={filters.maritalStatus} onChange={e => setFilters(f => ({ ...f, maritalStatus: e.target.value }))}>
-                    <option value="">{tc('all')}</option>
-                    <option value="NEVER_MARRIED">{tm('NEVER_MARRIED')}</option>
-                    <option value="DIVORCED">{tm('DIVORCED')}</option>
-                    <option value="WIDOWED">{tm('WIDOWED')}</option>
-                  </select>
-                </div>
-
-                <Button type="submit" className="w-full">{t('apply')}</Button>
-                <Button type="button" variant="outline" className="w-full" onClick={() => {
-                  setFilters({ gender: '', ageMin: '', ageMax: '', division: '', district: '', education: '', maritalStatus: '', page: 1 });
-                  reload({ gender: '', ageMin: '', ageMax: '', division: '', district: '', education: '', maritalStatus: '', page: 1 });
-                }}>{t('reset')}</Button>
-              </form>
-            </CardContent>
-          </Card>
+        {/* Filter bottom sheet (mobile) */}
+        {mobileOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} aria-hidden />
+            <div role="dialog" aria-modal="true" className="absolute inset-x-0 bottom-0 flex max-h-[90vh] flex-col overflow-hidden rounded-t-2xl">
+              <BiodataFilters value={draft} onChange={setDraft} onApply={applyDraft} onReset={resetAll} onClose={() => setMobileOpen(false)} className="min-h-0 flex-1" />
+            </div>
+          </div>
+        )}
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white p-3 lg:hidden">
+          <Button type="button" className="w-full h-12" onClick={() => setMobileOpen(true)}>
+            <SlidersHorizontal className="mr-2 h-4 w-4" />
+            {t('allFilters')}
+            {activeCount > 0 && <span className="ml-2 rounded-md bg-white/25 px-2 text-xs font-bold">{activeCount}</span>}
+          </Button>
         </div>
 
         {/* Profiles Grid */}
-        <div className="lg:col-span-3">
+        <div className="pb-20 lg:pb-0">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">{t('title')}</h1>
+          <div className="mb-4 mt-1 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-gray-600">{isLoading ? '\u00a0' : t('found', { total: pagination.total })}</p>
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              {t('sortLabel')}
+              <select
+                className="h-9 rounded-md border border-gray-300 bg-white px-2 text-sm"
+                value={sort}
+                onChange={e => navigate(applied, { sort: e.target.value })}
+              >
+                {SORTS.map(s => <option key={s} value={s}>{t(`sort_${s}`)}</option>)}
+              </select>
+            </label>
+          </div>
+
+          {activeChips.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              {activeChips.map(c => (
+                <button
+                  key={c.key}
+                  type="button"
+                  onClick={() => navigate(c.remove)}
+                  aria-label={t('removeFilter', { label: c.label })}
+                  className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-800 hover:bg-green-100"
+                >
+                  {c.label}
+                  <X className="h-3 w-3" />
+                </button>
+              ))}
+              <button type="button" onClick={resetAll} className="text-xs font-medium text-red-600 hover:underline">
+                {t('clearAll')}
+              </button>
+            </div>
+          )}
+
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className={GRID}>
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-gray-100 rounded-lg h-64 animate-pulse" />
+                <div key={i} className="h-[196px] rounded-2xl bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : profiles.length === 0 ? (
@@ -198,59 +211,8 @@ function BrowseContent() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {profiles.map((profile) => (
-                  <Link key={profile.id} href={`/profile/${profile.id}`}>
-                    <Card className="hover:shadow-md transition-all cursor-pointer hover:border-green-200">
-                      <CardContent className="p-4">
-                        {/* Avatar */}
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {profile.photos?.[0] ? (
-                              <img src={profile.photos[0].url} alt="profile" className="w-full h-full object-cover" />
-                            ) : (
-                              <User className="h-7 w-7 text-green-700" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-900 truncate">{profile.displayName || tc('unknown')}</p>
-                            {profile.oderId && (
-                              <p className="text-xs text-green-600 font-medium">{profile.oderId}</p>
-                            )}
-                            <p className="text-sm text-gray-500">{formatAge(profile.dateOfBirth)}{profile.gender === 'MALE' ? ` • ${tc('male')}` : profile.gender === 'FEMALE' ? ` • ${tc('female')}` : ''}</p>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          {(profile.division || profile.district) && (
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                              <span>{[profile.district, profile.division].filter(Boolean).join(', ')}</span>
-                            </div>
-                          )}
-                          {profile.education && (
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <GraduationCap className="h-3.5 w-3.5 text-gray-400" />
-                              <span className="truncate">{opt(profile.education)}</span>
-                            </div>
-                          )}
-                          {profile.occupation && (
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Briefcase className="h-3.5 w-3.5 text-gray-400" />
-                              <span className="truncate">{opt(profile.occupation)}</span>
-                            </div>
-                          )}
-                        </div>
-                        {profile.maritalStatus && (
-                          <div className="mt-3">
-                            <Badge variant="secondary" className="text-xs">
-                              {tm(profile.maritalStatus)}
-                            </Badge>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
+              <div className={GRID}>
+                {profiles.map(profile => <BiodataListCard key={profile.id} profile={profile} />)}
               </div>
 
               {/* Pagination */}

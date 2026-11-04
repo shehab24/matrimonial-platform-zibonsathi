@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { actionError } from '@/lib/action-error';
 import { ProfileStatus } from '@prisma/client';
 import { z } from 'zod';
+import { normalizePhone } from '@/lib/phone';
 
 // Empty inputs arrive as '' (text) or NaN (cleared number fields) - store them as null
 const optText = z.preprocess((v) => (v === '' ? null : v), z.string().trim().max(5000).nullish());
@@ -43,8 +44,11 @@ const profileInputSchema = z.object({
   partnerPreferences: optText,
   phoneNumber: optText,
   guardianPhone: optText,
-  showPhoneToConnected: z.boolean().optional(),
-  showGuardianPhoneToConnected: z.boolean().optional(),
+  hadiaPledge: z.preprocess(
+    (v) => (v === '' || v === null || (typeof v === 'number' && Number.isNaN(v)) ? null : Number(v)),
+    z.number().int().min(0).max(10_000_000).nullish()
+  ),
+  removalPledgeAccepted: z.boolean().optional(),
 });
 
 export async function getMyProfile() {
@@ -93,8 +97,8 @@ export async function upsertProfile(data: {
   partnerPreferences?: string;
   phoneNumber?: string;
   guardianPhone?: string;
-  showPhoneToConnected?: boolean;
-  showGuardianPhoneToConnected?: boolean;
+  hadiaPledge?: number | null;
+  removalPledgeAccepted?: boolean;
 }) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -111,11 +115,28 @@ export async function upsertProfile(data: {
       where: { userId: session.user.id },
     });
 
-    const dob = parsed.data.dateOfBirth ? new Date(parsed.data.dateOfBirth) : null;
+    const { removalPledgeAccepted, ...fields } = parsed.data;
+
+    // Mobile number is mandatory for every member, and stored normalized
+    const phoneNumber = normalizePhone(fields.phoneNumber);
+    if (!phoneNumber) {
+      return { success: false, error: await actionError('phoneInvalid') };
+    }
+    fields.phoneNumber = phoneNumber;
+    // Gender is fixed once set: it decides the ZBM/ZBF biodata number
+    if (existing?.gender) delete fields.gender;
+    const dob = fields.dateOfBirth ? new Date(fields.dateOfBirth) : null;
     const updateData: Record<string, unknown> = {
-      ...parsed.data,
+      ...fields,
       dateOfBirth: dob && !Number.isNaN(dob.getTime()) ? dob : null,
     };
+
+    // Keep the original acceptance time; unticking clears it
+    if (removalPledgeAccepted !== undefined) {
+      updateData.removalPledgeAcceptedAt = removalPledgeAccepted
+        ? existing?.removalPledgeAcceptedAt ?? new Date()
+        : null;
+    }
 
     // If profile was APPROVED, reset to DRAFT on update
     if (existing?.status === ProfileStatus.APPROVED) {
@@ -163,6 +184,11 @@ export async function submitForApproval() {
       return { success: false, error: await actionError('profileSuspended') };
     }
 
+    // Both commitments on the last form step are required before review
+    if (profile.hadiaPledge === null || !profile.removalPledgeAcceptedAt) {
+      return { success: false, error: await actionError('pledgeRequired') };
+    }
+
     await prisma.profile.update({
       where: { userId: session.user.id },
       data: { status: ProfileStatus.PENDING_APPROVAL },
@@ -207,12 +233,9 @@ export async function getPublicProfile(id: string) {
     });
 
     if (connection) {
-      if (profile.showPhoneToConnected) {
-        safeProfile.phoneNumber = profile.phoneNumber;
-      }
-      if (profile.showGuardianPhoneToConnected) {
-        safeProfile.guardianPhone = profile.guardianPhone;
-      }
+      // Contact numbers are what a connection pays for, so both are always shown
+      safeProfile.phoneNumber = profile.phoneNumber;
+      safeProfile.guardianPhone = profile.guardianPhone;
     }
   }
 

@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth';
 import { getDashboardStats, getMyProfileSummary } from '@/lib/dashboard-data';
 import { Button } from '@/components/ui/button';
 import { intlLocale } from '@/i18n/config';
+import { biodataHref } from '@/lib/biodata-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,7 @@ export default async function DashboardPage() {
   const status = profile?.status ?? 'DRAFT';
   const banner = bannerStyle[status];
   const BannerIcon = banner.icon;
-  const bannerHref = banner.href ?? `/profile/${profile?.id}`;
+  const bannerHref = banner.href ?? (profile ? biodataHref(profile) : '/profile');
 
   const quickLinks = [
     { href: '/favorites', label: t('nav.favorites'), desc: t('favoritesDesc'), count: favorites, icon: Heart, className: 'bg-pink-50 text-pink-600 ring-pink-100' },

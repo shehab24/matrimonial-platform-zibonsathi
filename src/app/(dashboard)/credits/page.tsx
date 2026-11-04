@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, TrendingUp } from 'lucide-react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { BuyButton } from '@/components/credits/buy-button';
+import { getCodePayConfig } from '@/lib/codepay';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { intlLocale } from '@/i18n/config';
 
@@ -13,7 +13,7 @@ export default async function CreditsPage() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const [creditBalance, ledger, packages] = await Promise.all([
+  const [creditBalance, ledger, packages, codepay] = await Promise.all([
     prisma.creditBalance.findUnique({ where: { userId: session.user.id } }),
     prisma.creditLedger.findMany({
       where: { userId: session.user.id },
@@ -21,6 +21,7 @@ export default async function CreditsPage() {
       take: 20,
     }),
     prisma.creditPackage.findMany({ where: { isActive: true }, orderBy: { credits: 'asc' } }),
+    getCodePayConfig(),
   ]);
 
   const balance = creditBalance?.balance ?? 0;
@@ -67,7 +68,7 @@ export default async function CreditsPage() {
                   <span className="text-xl font-semibold">৳{Number(pkg.price).toLocaleString(locale)}</span>
                   <Badge variant="secondary">{pkg.currency}</Badge>
                 </div>
-                <Button className="w-full mt-4">{t('buy')}</Button>
+                <BuyButton packageId={pkg.id} enabled={!!codepay} />
               </CardContent>
             </Card>
           ))}

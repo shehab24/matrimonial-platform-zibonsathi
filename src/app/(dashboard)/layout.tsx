@@ -10,10 +10,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (session.user.role === 'ADMIN') redirect('/admin/dashboard');
 
   const profile = await getMyProfileSummary(session.user.id);
+  // Gender and mobile are required for every member; Google sign-ups give them on this page first
+  if (!profile?.gender || !profile.phoneNumber) redirect('/complete-account');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-6 items-start">
-      <DashboardSidebar profile={profile} />
+      <DashboardSidebar profile={{ id: profile.id, status: profile.status, gender: profile.gender }} />
       <div className="min-w-0">{children}</div>
     </div>
   );

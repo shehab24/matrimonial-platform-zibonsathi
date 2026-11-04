@@ -243,8 +243,9 @@ export async function getContactInfo(profileId: string) {
 
     return {
       authorized: true,
-      phoneNumber: profile.showPhoneToConnected ? profile.phoneNumber : null,
-      guardianPhone: profile.showGuardianPhoneToConnected ? profile.guardianPhone : null,
+      // Contact numbers are what a connection pays for, so both are always shown
+      phoneNumber: profile.phoneNumber,
+      guardianPhone: profile.guardianPhone,
     };
   } catch (error) {
     console.error('getContactInfo error:', error);

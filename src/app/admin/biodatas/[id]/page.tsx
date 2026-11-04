@@ -5,6 +5,7 @@ import { ArrowLeft, ExternalLink, User } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BiodataReviewActions } from '@/components/admin/biodata-review-actions';
 import { GENDER_LABELS, MARITAL_LABELS, STATUS_LABELS, STATUS_STYLES, bnDate, bnNumber } from '@/lib/admin-labels';
+import { biodataHref } from '@/lib/biodata-url';
 
 const yesNo = (v: boolean | null) => (v === null ? null : v ? 'জীবিত' : 'মৃত');
 
@@ -12,15 +13,15 @@ function calcAge(dob: Date | null) {
   return dob ? new Date().getFullYear() - dob.getFullYear() : null;
 }
 
-function Section({ title, rows }: { title: string; rows: [string, React.ReactNode][] }) {
+function Section({ title, rows, compact }: { title: string; rows: [string, React.ReactNode][]; compact?: boolean }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
       <h2 className="px-5 py-3 border-b border-gray-200 font-semibold text-gray-900">{title}</h2>
       <dl className="divide-y divide-gray-100">
         {rows.map(([label, value]) => (
-          <div key={label} className="grid grid-cols-[150px_1fr] gap-3 px-5 py-2.5 text-sm">
+          <div key={label} className={`grid ${compact ? 'grid-cols-[110px_minmax(0,1fr)]' : 'grid-cols-[150px_minmax(0,1fr)]'} gap-3 px-5 py-2.5 text-sm`}>
             <dt className="text-gray-500">{label}</dt>
-            <dd className="text-gray-900 whitespace-pre-wrap break-words">{value ?? <span className="text-gray-400">—</span>}</dd>
+            <dd className="text-gray-900 whitespace-pre-wrap [overflow-wrap:anywhere]">{value ?? <span className="text-gray-400">—</span>}</dd>
           </div>
         ))}
       </dl>
@@ -29,9 +30,11 @@ function Section({ title, rows }: { title: string; rows: [string, React.ReactNod
 }
 
 export default async function AdminBiodataDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const p = await prisma.profile.findUnique({
-    where: { id },
+  const { id: raw } = await params;
+  const id = decodeURIComponent(raw);
+  // Accepts the biodata number (ZBM-00001) or, for biodatas without one yet, the internal ID.
+  const p = await prisma.profile.findFirst({
+    where: { OR: [{ oderId: id }, { id }] },
     include: {
       user: { select: { id: true, email: true, name: true, createdAt: true, isSuspended: true, emailVerified: true } },
       photos: true,
@@ -63,13 +66,13 @@ export default async function AdminBiodataDetailPage({ params }: { params: Promi
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold text-gray-900">{p.displayName ?? 'নাম নেই'}</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 [overflow-wrap:anywhere]">
             {p.oderId ?? 'বায়োডাটা নং দেওয়া হয়নি'} · {p.user.email}
           </p>
         </div>
         <span className={`rounded-md px-3 py-1 text-sm font-semibold ${STATUS_STYLES[p.status]}`}>{STATUS_LABELS[p.status]}</span>
         {p.status === 'APPROVED' && (
-          <Link href={`/profile/${p.id}`} target="_blank" className="inline-flex items-center gap-1 text-sm text-green-700 hover:underline">
+          <Link href={biodataHref(p)} target="_blank" className="inline-flex items-center gap-1 text-sm text-green-700 hover:underline">
             পাবলিক পেজ <ExternalLink className="h-3.5 w-3.5" />
           </Link>
         )}
@@ -119,12 +122,17 @@ export default async function AdminBiodataDetailPage({ params }: { params: Promi
             <BiodataReviewActions profileId={p.id} status={p.status} />
           </div>
 
-          <Section title="যোগাযোগ (শুধু অ্যাডমিন)" rows={[
+          <Section compact title="যোগাযোগ (শুধু অ্যাডমিন)" rows={[
             ['মোবাইল', p.phoneNumber],
             ['অভিভাবক', p.guardianPhone],
           ]} />
 
-          <Section title="অ্যাকাউন্ট" rows={[
+          <Section compact title="অঙ্গীকার" rows={[
+            ['হাদিয়ার অঙ্গীকার', p.hadiaPledge != null ? `৳ ${bnNumber(p.hadiaPledge)}` : null],
+            ['বায়োডাটা মুছে ফেলার দায়িত্ব', p.removalPledgeAcceptedAt ? `গ্রহণ করেছেন (${bnDate(p.removalPledgeAcceptedAt)})` : null],
+          ]} />
+
+          <Section compact title="অ্যাকাউন্ট" rows={[
             ['নাম', p.user.name],
             ['ইমেইল', p.user.email],
             ['নিবন্ধন', bnDate(p.user.createdAt)],

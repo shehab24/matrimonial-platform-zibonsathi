@@ -132,7 +132,8 @@
     "nameMin": "Name must be at least 2 characters",
     "passwordMin": "Password must be at least 8 characters",
     "genderRequired": "Select a gender",
-    "passwordMismatch": "Passwords do not match"
+    "passwordMismatch": "Passwords do not match",
+    "phoneInvalid": "Enter a valid mobile number (e.g. 01XXXXXXXXX)"
   },
   "auth": {
     "loginTitle": "Log in",
@@ -211,7 +212,9 @@
     "back": "Back",
     "aboutYou": "Tell us about yourself",
     "accountDetails": "Set up your login",
-    "stepOf": "Step {current, number} of {total, number}"
+    "stepOf": "Step {current, number} of {total, number}",
+    "phone": "Mobile number",
+    "phoneHint": "Bangladeshi number as 01XXXXXXXXX; numbers from abroad start with +"
   },
   "browse": {
     "title": "Browse Biodatas",
@@ -230,7 +233,37 @@
     "reset": "Reset",
     "noResults": "No profiles found",
     "noResultsHint": "Try changing the filters",
-    "pageOf": "Page {page, number} / {total, number}"
+    "pageOf": "Page {page, number} / {total, number}",
+    "allFilters": "All filters",
+    "closeFilters": "Close filters",
+    "sectionPrimary": "Primary",
+    "sectionAddress": "Address",
+    "sectionEducation": "Education",
+    "sectionProfession": "Profession",
+    "sectionPersonal": "Personal",
+    "sectionOthers": "Others",
+    "biodataNo": "Search by biodata no.",
+    "biodataNoPlaceholder": "e.g. ZBM-00012",
+    "lookingFor": "I'm looking for",
+    "groomBiodata": "Groom's biodata",
+    "brideBiodata": "Bride's biodata",
+    "to": "to",
+    "mazhab": "Mazhab",
+    "familyStatus": "Financial status",
+    "sortLabel": "Sort",
+    "sort_default": "Default",
+    "sort_newest": "Newest first",
+    "sort_oldest": "Oldest first",
+    "clearAll": "Clear all",
+    "removeFilter": "Remove {label} filter",
+    "chipBiodataNo": "Biodata no. {no}",
+    "chipAge": "Age {min, number}–{max, number}",
+    "clearFilters": "Clear filters",
+    "searchBiodata": "Search biodatas",
+    "yearUnit": "yrs",
+    "viewBiodata": "Biodata",
+    "addFavorite": "Add to favorites",
+    "removeFavorite": "Remove from favorites"
   },
   "favorites": {
     "title": "Favorites & Lists",
@@ -289,7 +322,21 @@
     "PURCHASE": "Purchase",
     "DEDUCTION": "Deduction",
     "REFUND": "Refund",
-    "ADJUSTMENT": "Adjustment"
+    "ADJUSTMENT": "Adjustment",
+    "redirecting": "Taking you to payment...",
+    "paymentSoon": "Coming soon",
+    "return": {
+      "doneTitle": "Payment complete",
+      "doneBody": "Alhamdulillah! {credits, number} credits have been added to your account.",
+      "pendingTitle": "Verifying your payment",
+      "pendingBody": "Thank you! {credits, number} credits will be added as soon as the payment is verified. This usually takes a short while.",
+      "failedTitle": "Payment not completed",
+      "failedBody": "The payment didn't go through and no credits were added. If money was deducted, contact support with your order ID.",
+      "missingTitle": "Payment not found",
+      "missingBody": "We couldn't find this payment. If money was deducted, please contact support.",
+      "orderId": "Order ID: {id}",
+      "back": "Back to credits"
+    }
   },
   "options": {
     "এসএসসি": "SSC",
@@ -346,7 +393,8 @@
       "family": "Family info",
       "religious": "Religious info",
       "about": "About me",
-      "contact": "Contact info"
+      "contact": "Contact info",
+      "pledge": "Commitment"
     },
     "saved": "Saved",
     "savedBody": "Your profile has been saved.",
@@ -386,11 +434,19 @@
     "partnerPreferencesPlaceholder": "What kind of life partner do you want?",
     "phone": "Mobile number",
     "guardianPhone": "Guardian's number",
-    "privacy": "Privacy settings",
-    "showPhone": "Show my mobile number to connections",
-    "showGuardianPhone": "Show guardian's number to connections",
     "saving": "Saving...",
-    "submit": "Submit for approval"
+    "submit": "Submit for approval",
+    "contactNote": "Once a contact request is accepted, the connected member can see your mobile and guardian's numbers.",
+    "hadiaTitle": "Hadia pledge",
+    "hadiaBody": "If you get married through this platform, how much would you like to give ZibonSathi as hadia (gift)? This is your intention and commitment, and it helps keep the platform running.",
+    "taka": "৳ {amount, number}",
+    "hadiaOther": "Other amount",
+    "hadiaAmount": "Hadia amount (Taka)",
+    "hadiaAmountPlaceholder": "e.g. 3000",
+    "removalTitle": "Responsibility to remove your biodata",
+    "removalBody": "If you get married elsewhere, it is your responsibility to remove your biodata from here. Otherwise, if others spend money and time on your biodata, you will have to answer to Allah for it.",
+    "removalAgree": "I accept this responsibility and will remove my biodata if I get married elsewhere, in sha Allah.",
+    "pledgeRequired": "To submit for approval, choose a hadia amount and tick the responsibility pledge."
   },
   "profileStatus": {
     "DRAFT": "Draft",
@@ -474,7 +530,32 @@
     "reportDetails": "Details (optional)",
     "reportSubmit": "Submit report",
     "reportSent": "Report submitted",
-    "reportSentBody": "Thank you. Our team will review it."
+    "reportSentBody": "Thank you. Our team will review it.",
+    "birthYear": "Born",
+    "like": "Like",
+    "liked": "Liked",
+    "dislike": "Dislike",
+    "disliked": "Disliked",
+    "share": "Share",
+    "shareTitle": "Biodata {no}",
+    "linkCopied": "Link copied",
+    "highestEducation": "Highest qualification",
+    "educationDetails": "Education details",
+    "personalInfo": "Personal information",
+    "sect": "Sect/Approach",
+    "professionInfo": "Profession",
+    "marriageInfo": "Marriage information",
+    "partnerSection": "Expected life partner",
+    "contactTitle": "Contact information",
+    "contactLocked": "Send a contact request to see the guardian's contact details. They will appear here once your request is accepted.",
+    "contactPending": "Your request has been sent. Contact details will appear here once it is accepted.",
+    "loginToContact": "Log in to contact",
+    "caution": "Caution:",
+    "cautionBody": "Before deciding on a marriage, verify every detail in this biodata through local inquiry.",
+    "ownBiodata": "This is your own biodata",
+    "editBiodata": "Edit",
+    "verseBody": "And among His signs is that He created for you spouses from among yourselves, so that you may find tranquility in them.",
+    "verseRef": "— Surah Ar-Rum : 21"
   },
   "errors": {
     "emailTaken": "An account with this email already exists",
@@ -514,7 +595,12 @@
     "cannotConnectSelf": "You can't send a proposal to yourself",
     "reportFailed": "Failed to submit the report",
     "cannotReportSelf": "You can't report yourself",
-    "alreadyReported": "You have already reported this biodata. Our team is reviewing it."
+    "alreadyReported": "You have already reported this biodata. Our team is reviewing it.",
+    "pledgeRequired": "Complete the commitment step before submitting for approval",
+    "wrongPassword": "Current password is incorrect",
+    "phoneInvalid": "Enter a valid mobile number (e.g. 01XXXXXXXXX)",
+    "paymentUnavailable": "Online payment isn't available right now. Please try later or contact support.",
+    "paymentStartFailed": "Couldn't start the payment. Please try again in a moment."
   },
   "notifications": {
     "title": "Notifications",
@@ -546,7 +632,9 @@
       "proposalsSent": "Proposals sent",
       "proposalsReceived": "Proposals received",
       "notifications": "Notifications",
-      "logout": "Log out"
+      "logout": "Log out",
+      "settings": "Settings",
+      "deleteBiodata": "Delete biodata"
     },
     "biodataStatus": "Biodata status",
     "myBiodata": "My biodata",
@@ -612,5 +700,54 @@
     "removeIgnored": "Remove from ignore list",
     "hidden": "Hidden",
     "viewList": "View list"
+  },
+  "settings": {
+    "title": "Settings",
+    "summary": "Your account details. Only the password can be changed here.",
+    "name": "Name",
+    "gender": "Gender",
+    "email": "Email",
+    "mobile": "Mobile number",
+    "notSet": "Not set",
+    "password": "Password",
+    "noPassword": "You sign in with Google; no password is set",
+    "change": "Change",
+    "setPassword": "Set password",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Repeat new password",
+    "passwordHint": "At least 8 characters",
+    "mismatch": "The passwords don't match",
+    "passwordChanged": "Password changed",
+    "lockedNote": "Name, gender and email can't be changed here. Change your mobile number from Edit biodata. For any other correction, contact support."
+  },
+  "deleteBiodata": {
+    "title": "Delete biodata",
+    "summary": "Permanently remove your biodata",
+    "noBiodata": "You don't have a biodata",
+    "noBiodataHint": "There is no biodata to delete.",
+    "whatHappens": "What happens when you delete your biodata",
+    "whatHappensNo": "What happens when you delete biodata {no}",
+    "effectHidden": "No one will be able to find or view your biodata.",
+    "effectErased": "All biodata details and photos will be erased.",
+    "effectConnections": "Only members who already bought a connection and received your contact details will still see your mobile and guardian's numbers.",
+    "effectAccount": "Your account and credits stay, so you can create a new biodata later.",
+    "marriedTitle": "Married through ZibonSathi?",
+    "marriedPledge": "Alhamdulillah! When submitting your biodata you pledged ৳ {amount, number} as hadia. Please contact support to fulfil your pledge. May Allah bless your marriage.",
+    "marriedNoPledge": "Alhamdulillah! If you'd like to help keep the platform running, contact support to give hadia. May Allah bless your marriage.",
+    "irreversible": "This can't be undone. Deleted details can't be recovered.",
+    "understand": "I understand that my biodata will be permanently deleted.",
+    "deleteButton": "Delete biodata",
+    "confirmTitle": "Are you sure?",
+    "confirmBody": "Your biodata will be permanently deleted right now.",
+    "confirmDelete": "Yes, delete",
+    "deleted": "Biodata deleted",
+    "deletedBody": "Your biodata is no longer visible on the platform."
+  },
+  "completeAccount": {
+    "title": "Complete your account",
+    "subtitle": "Add your gender and mobile number to continue",
+    "genderFixed": "Gender can't be changed later.",
+    "continue": "Continue"
   }
 }

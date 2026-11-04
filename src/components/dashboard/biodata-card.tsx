@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ArrowRight, CalendarDays, MapPin, CircleDot, GraduationCap, Briefcase, User } from 'lucide-react';
+import { biodataHref } from '@/lib/biodata-url';
 
 export interface BiodataSummary {
   id: string;
@@ -87,7 +88,7 @@ export function BiodataCard({
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
           <div className="flex flex-wrap items-center gap-2">{footer}</div>
           <Link
-            href={`/profile/${profile.id}`}
+            href={biodataHref(profile)}
             className="ml-auto inline-flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-100"
           >
             {t('viewBiodata')} <ArrowRight className="h-3.5 w-3.5" />

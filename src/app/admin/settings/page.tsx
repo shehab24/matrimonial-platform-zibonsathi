@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Settings, Save, Loader2, MessageCircle, BarChart3 } from 'lucide-react';
+import { CodePaySettings } from '@/components/admin/codepay-settings';
 
 export default function AdminSettingsPage() {
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [showHomeStats, setShowHomeStats] = useState(true);
   const [savingStats, setSavingStats] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [allSettings, setAllSettings] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -18,6 +20,7 @@ export default function AdminSettingsPage() {
         const data = await res.json();
         setWhatsappNumber(data.whatsapp_number || '');
         setShowHomeStats(data.show_home_stats !== 'false');
+        setAllSettings(data);
       } catch {
         setMessage({ type: 'error', text: 'সেটিংস লোড করতে সমস্যা হয়েছে' });
       } finally {
@@ -141,6 +144,8 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       </div>
+
+      <CodePaySettings settings={allSettings} />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="p-6 border-b border-gray-200">

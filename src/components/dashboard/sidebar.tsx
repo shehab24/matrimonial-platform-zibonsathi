@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import {
-  Search, LayoutGrid, PenSquare, Heart, Ban, Star, ShoppingCart, Send, Inbox, Bell, LogOut, Eye, User,
+  Search, LayoutGrid, PenSquare, Heart, Ban, Star, ShoppingCart, Send, Inbox, Bell, LogOut, Eye, User, Settings, Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -26,6 +26,7 @@ const links = [
   { href: '/connections/sent', label: 'proposalsSent', icon: Send },
   { href: '/connections/received', label: 'proposalsReceived', icon: Inbox },
   { href: '/notifications', label: 'notifications', icon: Bell },
+  { href: '/settings', label: 'settings', icon: Settings },
 ] as const;
 
 const statusStyles: Record<SidebarProfile['status'], string> = {
@@ -83,6 +84,19 @@ export function DashboardSidebar({ profile }: { profile: SidebarProfile | null }
             );
           })}
           <li className="shrink-0 lg:mt-1 lg:border-t lg:border-gray-200 lg:pt-1">
+            <Link
+              href="/delete-biodata"
+              className={`flex items-center gap-3 whitespace-nowrap px-5 py-3 text-sm transition-colors border-b-2 lg:border-b-0 lg:border-l-[3px] ${
+                pathname === '/delete-biodata'
+                  ? 'border-red-600 bg-red-50 text-red-600 font-semibold'
+                  : 'border-transparent text-red-600 hover:bg-red-50'
+              }`}
+            >
+              <Trash2 className="h-4 w-4 shrink-0" />
+              {t('nav.deleteBiodata')}
+            </Link>
+          </li>
+          <li className="shrink-0">
             <button
               onClick={() => signOut({ callbackUrl: '/' })}
               className="flex w-full items-center gap-3 whitespace-nowrap px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition-colors lg:border-l-[3px] lg:border-transparent"

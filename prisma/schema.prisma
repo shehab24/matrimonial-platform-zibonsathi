@@ -232,8 +232,12 @@ model Profile {
 
   // Visibility
   isVisible           Boolean       @default(true)
-  showPhoneToConnected Boolean      @default(true)
-  showGuardianPhoneToConnected Boolean @default(true)
+  showPhoneToConnected Boolean      @default(true) // No longer read: connected members always see both numbers
+  showGuardianPhoneToConnected Boolean @default(true) // No longer read: connected members always see both numbers
+
+  // Commitments made before submitting the biodata
+  hadiaPledge             Int?      // Taka the member pledges as hadia if they marry through the platform
+  removalPledgeAcceptedAt DateTime? // Agreed to remove the biodata if they marry elsewhere
 
   // Admin
   adminNote           String?       @db.Text

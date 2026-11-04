@@ -6,12 +6,14 @@ import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { z } from 'zod';
+import { normalizePhone } from '@/lib/phone';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'nameMin'),
   email: z.string().trim().toLowerCase().email('invalidEmail'),
   password: z.string().min(8, 'passwordMin'),
   gender: z.enum(['MALE', 'FEMALE'], { message: 'genderRequired' }),
+  phone: z.string().transform((v, ctx) => normalizePhone(v) ?? (ctx.addIssue({ code: 'custom', message: 'phoneInvalid' }), z.NEVER)),
 });
 
 export async function registerUser(data: {
@@ -19,6 +21,7 @@ export async function registerUser(data: {
   email: string;
   password: string;
   gender: 'MALE' | 'FEMALE';
+  phone: string;
 }) {
   try {
     const parsed = registerSchema.safeParse(data);
@@ -45,6 +48,7 @@ export async function registerUser(data: {
           create: {
             gender: parsed.data.gender,
             displayName: parsed.data.name,
+            phoneNumber: parsed.data.phone,
           },
         },
         creditBalance: {

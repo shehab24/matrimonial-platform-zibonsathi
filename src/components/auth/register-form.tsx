@@ -8,11 +8,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { signIn } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
-import { User, Mail, Lock, Eye, EyeOff, Loader2, UserPlus, ArrowLeft, ArrowRight } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, Loader2, UserPlus, ArrowLeft, ArrowRight, Phone } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { GoogleButton } from './google-button';
 import { Logo } from '@/components/layout/logo';
 import { registerUser } from '@/actions/auth';
+import { normalizePhone } from '@/lib/phone';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'nameMin'),
@@ -20,6 +21,7 @@ const registerSchema = z.object({
   password: z.string().min(8, 'passwordMin'),
   confirmPassword: z.string(),
   gender: z.enum(['MALE', 'FEMALE'], { message: 'genderRequired' }),
+  phone: z.string().refine((v) => normalizePhone(v) !== null, 'phoneInvalid'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'passwordMismatch',
   path: ['confirmPassword'],
@@ -100,7 +102,7 @@ export function RegisterForm({ googleEnabled }: { googleEnabled: boolean }) {
   // Validate only this step's fields before moving on
   const goToAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (await trigger(['name', 'gender'])) setStep('account');
+    if (await trigger(['name', 'gender', 'phone'])) setStep('account');
   };
 
   const onSubmit = async (data: RegisterValues) => {
@@ -111,6 +113,7 @@ export function RegisterForm({ googleEnabled }: { googleEnabled: boolean }) {
         email: data.email,
         password: data.password,
         gender: data.gender,
+        phone: data.phone,
       });
 
       if (!result.success) {
@@ -198,6 +201,16 @@ export function RegisterForm({ googleEnabled }: { googleEnabled: boolean }) {
                 </div>
                 {errors.gender && <p className="mt-2 text-sm text-red-600">{tv(errors.gender.message ?? '')}</p>}
               </fieldset>
+
+              <div className="space-y-2">
+                <label htmlFor="phone" className="block text-sm font-semibold text-gray-800">{t('phone')}</label>
+                <div className="relative">
+                  <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <input id="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" className={inputClass} {...register('phone', { onChange: () => clearErrors('phone') })} />
+                </div>
+                <p className="text-xs text-gray-500">{t('phoneHint')}</p>
+                {errors.phone && <p className="text-sm text-red-600">{tv(errors.phone.message ?? '')}</p>}
+              </div>
 
               <button type="submit" className={primaryButton}>
                 {tc('next')} <ArrowRight className="h-4 w-4" />

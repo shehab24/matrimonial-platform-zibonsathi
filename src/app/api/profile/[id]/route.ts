@@ -11,8 +11,9 @@ export async function GET(
   const { id } = await params;
   const session = await auth();
 
-  const profile = await prisma.profile.findUnique({
-    where: { id },
+  // Accepts the internal ID or the public biodata no. (any case), so /biodata/zbf-00010 works too
+  const profile = await prisma.profile.findFirst({
+    where: { OR: [{ id }, { oderId: { equals: id, mode: 'insensitive' } }] },
     include: {
       photos: true,
       user: { select: { id: true, createdAt: true } },
@@ -80,15 +81,16 @@ export async function GET(
       where: {
         status: ConnectionStatus.ACCEPTED,
         OR: [
-          { senderId: session.user.id, receiverProfileId: id },
-          { receiverId: session.user.id, senderProfileId: id },
+          { senderId: session.user.id, receiverProfileId: profile.id },
+          { receiverId: session.user.id, senderProfileId: profile.id },
         ],
       },
     });
 
     if (connection) {
-      if (profile.showPhoneToConnected) safeProfile.phoneNumber = profile.phoneNumber;
-      if (profile.showGuardianPhoneToConnected) safeProfile.guardianPhone = profile.guardianPhone;
+      // Contact numbers are what a connection pays for, so both are always shown
+      safeProfile.phoneNumber = profile.phoneNumber;
+      safeProfile.guardianPhone = profile.guardianPhone;
     }
   }
 

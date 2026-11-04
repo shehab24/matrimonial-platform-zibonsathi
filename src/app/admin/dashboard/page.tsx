@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+import { adminBiodataHref } from '@/lib/biodata-url';
 import Link from 'next/link';
 import { Users, FileText, ClipboardCheck, BadgeCheck, Flag, Link2, User, UserRound, ArrowRight } from 'lucide-react';
 import { ConnectionStatus, Gender, ProfileStatus, ReportStatus, Role } from '@prisma/client';
@@ -30,7 +31,7 @@ export default async function AdminDashboardPage() {
       where: { status: ProfileStatus.PENDING_APPROVAL },
       orderBy: { updatedAt: 'asc' },
       take: 6,
-      select: { id: true, displayName: true, gender: true, district: true, updatedAt: true, user: { select: { email: true } } },
+      select: { id: true, oderId: true, displayName: true, gender: true, district: true, updatedAt: true, user: { select: { email: true } } },
     }),
   ]);
 
@@ -93,7 +94,7 @@ export default async function AdminDashboardPage() {
                   </p>
                 </div>
                 <Button size="sm" asChild>
-                  <Link href={`/admin/biodatas/${p.id}`}>রিভিউ করুন <ArrowRight className="h-4 w-4" /></Link>
+                  <Link href={adminBiodataHref(p)}>রিভিউ করুন <ArrowRight className="h-4 w-4" /></Link>
                 </Button>
               </li>
             ))}

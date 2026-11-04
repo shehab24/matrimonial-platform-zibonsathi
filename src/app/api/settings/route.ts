@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 
 // Settings anyone may read by key; everything else is admin-only
 const PUBLIC_KEYS = ['whatsapp_number'];
+// Never sent back to the browser once saved, not even to admins; reads report only whether one is set
+const SECRET_KEYS = ['codepay_api_secret'];
 
 // GET - fetch settings (public for whatsapp number)
 export async function GET(request: Request) {
@@ -20,6 +22,9 @@ export async function GET(request: Request) {
     const setting = await prisma.siteSetting.findUnique({
       where: { key },
     });
+    if (SECRET_KEYS.includes(key)) {
+      return NextResponse.json({ value: null, isSet: !!setting?.value });
+    }
     return NextResponse.json({ value: setting?.value || null });
   }
 
@@ -31,7 +36,11 @@ export async function GET(request: Request) {
 
   const settings = await prisma.siteSetting.findMany();
   const settingsObj = settings.reduce((acc, s) => {
-    acc[s.key] = s.value;
+    if (SECRET_KEYS.includes(s.key)) {
+      acc[`${s.key}_set`] = s.value ? 'true' : 'false';
+    } else {
+      acc[s.key] = s.value;
+    }
     return acc;
   }, {} as Record<string, string>);
 
@@ -52,11 +61,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Key is required' }, { status: 400 });
   }
 
+  // A blank secret means "keep the saved one" (the form never receives it to send back)
+  if (SECRET_KEYS.includes(key) && !String(value ?? '').trim()) {
+    return NextResponse.json({ success: true });
+  }
+
   const setting = await prisma.siteSetting.upsert({
     where: { key },
     update: { value: value || '' },
     create: { key, value: value || '' },
   });
 
-  return NextResponse.json({ success: true, setting });
+  return NextResponse.json({ success: true, setting: SECRET_KEYS.includes(key) ? { key } : setting });
 }

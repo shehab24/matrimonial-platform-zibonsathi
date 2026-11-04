@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Noto_Sans_Bengali } from 'next/font/google';
+import localFont from 'next/font/local';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 import './globals.css';
@@ -12,9 +13,17 @@ import { auth } from '@/lib/auth';
 import ChatWidget from '@/components/ChatWidget';
 
 
-// Inter renders Latin text (emails, IDs, English UI); Bangla glyphs fall through to Noto Sans Bengali
-// (its round ০ stays distinct from Latin 0, unlike some Bangla fonts)
+// Inter renders Latin text (emails, IDs, English UI) so Latin digits never pick up Bangla-font shapes;
+// Bangla glyphs fall through to SolaimanLipi, with Noto Sans Bengali as a fallback while it loads
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const solaimanLipi = localFont({
+  src: [
+    { path: './fonts/solaimanlipi-normal.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/solaimanlipi-bold.woff2', weight: '700', style: 'normal' },
+  ],
+  variable: '--font-solaiman-lipi',
+  display: 'swap',
+});
 const notoBengali = Noto_Sans_Bengali({ subsets: ['bengali'], variable: '--font-noto-bengali' });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,11 +37,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getLocale();
 
   return (
-    <html lang={locale} className={`${inter.variable} ${notoBengali.variable} h-full`} suppressHydrationWarning>
+    <html lang={locale} className={`${inter.variable} ${solaimanLipi.variable} ${notoBengali.variable} h-full`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="min-h-full flex flex-col antialiased bg-gray-50" style={{ fontFamily: 'var(--font-inter), var(--font-noto-bengali), sans-serif' }}>
+      <body className="min-h-full flex flex-col antialiased bg-gray-50" style={{ fontFamily: 'var(--font-inter), var(--font-solaiman-lipi), var(--font-noto-bengali), sans-serif' }}>
         <NextIntlClientProvider>
           <SessionProvider session={session}>
             <Navbar />
