@@ -144,8 +144,20 @@ export async function POST(request: Request) {
         },
       });
 
-      // Assign biodata ID
-      const biodataId = await assignBiodataId(profile.id);
+      // Generate biodata ID inline (can't use assignBiodataId inside transaction)
+      const prefix = gender === 'MALE' ? 'ZBM' : 'ZBF';
+      const lastProfile = await tx.profile.findFirst({
+        where: { oderId: { startsWith: prefix } },
+        orderBy: { oderId: 'desc' },
+        select: { oderId: true },
+      });
+      
+      let nextNumber = 1;
+      if (lastProfile?.oderId) {
+        const match = lastProfile.oderId.match(/\d+$/);
+        if (match) nextNumber = parseInt(match[0], 10) + 1;
+      }
+      const biodataId = `${prefix}-${nextNumber.toString().padStart(5, '0')}`;
       
       // Update profile with biodata ID
       await tx.profile.update({
