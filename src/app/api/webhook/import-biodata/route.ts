@@ -18,8 +18,9 @@ function validateApiKey(request: Request): boolean {
 function parseGender(value: string | undefined): Gender | null {
   if (!value) return null;
   const lower = value.toLowerCase();
-  if (lower.includes('male') || lower.includes('পুরুষ') || lower.includes('ছেলে')) return 'MALE';
+  // Check female FIRST (because "female" contains "male")
   if (lower.includes('female') || lower.includes('মহিলা') || lower.includes('নারী') || lower.includes('মেয়ে')) return 'FEMALE';
+  if (lower.includes('male') || lower.includes('পুরুষ') || lower.includes('ছেলে')) return 'MALE';
   return null;
 }
 
