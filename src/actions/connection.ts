@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { actionError } from '@/lib/action-error';
 import { notify } from '@/lib/notifications';
 import { ConnectionStatus, ProfileStatus } from '@prisma/client';
+import { isImportedEmail } from '@/lib/imported-biodata';
 
 export async function sendConnectionRequest(receiverProfileId: string) {
   const session = await auth();
@@ -28,10 +29,16 @@ export async function sendConnectionRequest(receiverProfileId: string) {
 
     const receiverProfile = await prisma.profile.findUnique({
       where: { id: receiverProfileId },
+      include: { user: { select: { email: true } } },
     });
 
     if (!receiverProfile || receiverProfile.status !== ProfileStatus.APPROVED || !receiverProfile.isVisible) {
       return { success: false, error: await actionError('recipientNotFound') };
+    }
+
+    // Imported biodatas have no real account to accept a request; their contact is free instead
+    if (isImportedEmail(receiverProfile.user.email)) {
+      return { success: false, error: await actionError('importedNoConnection') };
     }
 
     if (receiverProfile.userId === session.user.id) {

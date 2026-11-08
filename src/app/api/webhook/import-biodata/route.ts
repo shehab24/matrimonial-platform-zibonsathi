@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Gender, MaritalStatus, ProfileStatus } from '@prisma/client';
-import { assignBiodataId } from '@/lib/biodata-id';
+import { IMPORTED_EMAIL_DOMAIN } from '@/lib/imported-biodata';
 
 // API key for n8n webhook authentication
 const API_KEY = process.env.BIODATA_IMPORT_API_KEY;
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     // Create a placeholder user for this imported biodata
     // Using a unique identifier based on timestamp + random
     const uniqueId = `import_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const placeholderEmail = `${uniqueId}@import.zibonsathi.local`;
+    const placeholderEmail = `${uniqueId}${IMPORTED_EMAIL_DOMAIN}`; // marks the biodata as imported (free contact)
 
     // Create user and profile in a transaction
     const result = await prisma.$transaction(async (tx) => {

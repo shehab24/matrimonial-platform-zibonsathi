@@ -5,6 +5,7 @@ import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Gender, Prisma, ProfileStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { Button } from '@/components/ui/button';
+import { DeleteBiodataButton } from '@/components/admin/delete-biodata-button';
 import { GENDER_LABELS, STATUS_LABELS, STATUS_STYLES, bnDate, bnNumber } from '@/lib/admin-labels';
 
 const PAGE_SIZE = 20;
@@ -141,10 +142,13 @@ export default async function AdminBiodatasPage({ searchParams }: { searchParams
                       <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[p.status]}`}>{STATUS_LABELS[p.status]}</span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{bnDate(p.updatedAt)}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-2">
                       <Button size="sm" variant={p.status === ProfileStatus.PENDING_APPROVAL ? 'default' : 'outline'} asChild>
                         <Link href={adminBiodataHref(p)}>{p.status === ProfileStatus.PENDING_APPROVAL ? 'রিভিউ করুন' : 'দেখুন'}</Link>
                       </Button>
+                      <DeleteBiodataButton profileId={p.id} label={p.oderId ?? p.displayName} size="sm" />
+                      </div>
                     </td>
                   </tr>
                 ))}

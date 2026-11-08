@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, ExternalLink, User } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BiodataReviewActions } from '@/components/admin/biodata-review-actions';
+import { DeleteBiodataButton } from '@/components/admin/delete-biodata-button';
 import { GENDER_LABELS, MARITAL_LABELS, STATUS_LABELS, STATUS_STYLES, bnDate, bnNumber } from '@/lib/admin-labels';
 import { biodataHref } from '@/lib/biodata-url';
 
@@ -120,6 +121,9 @@ export default async function AdminBiodataDetailPage({ params }: { params: Promi
               </p>
             )}
             <BiodataReviewActions profileId={p.id} status={p.status} />
+            <div className="mt-4 border-t border-gray-200 pt-4">
+              <DeleteBiodataButton profileId={p.id} label={p.oderId ?? p.displayName} redirectTo="/admin/biodatas" className="w-full" />
+            </div>
           </div>
 
           <Section compact title="যোগাযোগ (শুধু অ্যাডমিন)" rows={[

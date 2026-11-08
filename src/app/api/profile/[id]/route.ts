@@ -3,6 +3,11 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { actionError } from '@/lib/action-error';
 import { ProfileStatus, ConnectionStatus } from '@prisma/client';
+import { isImportedEmail } from '@/lib/imported-biodata';
+
+// On an imported biodata, a logged-in member whose own biodata is in one of these states sees the contact numbers
+// without a connection
+const FREE_CONTACT_STATUSES: ProfileStatus[] = [ProfileStatus.PENDING_APPROVAL, ProfileStatus.APPROVED];
 
 export async function GET(
   req: NextRequest,
@@ -16,7 +21,7 @@ export async function GET(
     where: { OR: [{ id }, { oderId: { equals: id, mode: 'insensitive' } }] },
     include: {
       photos: true,
-      user: { select: { id: true, createdAt: true } },
+      user: { select: { id: true, createdAt: true, email: true } },
     },
   });
 
@@ -73,26 +78,39 @@ export async function GET(
     // NEVER include phoneNumber or guardianPhone unless authorized
     phoneNumber: null as string | null,
     guardianPhone: null as string | null,
+    // Imported biodata: contact is free for members who have submitted their own biodata (no connection needed)
+    freeContact: isImportedEmail(profile.user.email),
   };
 
-  // Server-side only: check ACCEPTED connection
-  if (session?.user?.id) {
-    const connection = await prisma.connection.findFirst({
-      where: {
-        status: ConnectionStatus.ACCEPTED,
-        OR: [
-          { senderId: session.user.id, receiverProfileId: profile.id },
-          { receiverId: session.user.id, senderProfileId: profile.id },
-        ],
-      },
-    });
+  // Server-side only. Contact numbers are revealed when the viewer either:
+  //  - has an ACCEPTED connection with this biodata, or
+  //  - this is an imported biodata and the viewer has submitted their own biodata (partially free access).
+  let needsBiodata = false;
+  if (session?.user?.id && !safeProfile.isOwn) {
+    const [ownProfile, connection] = await Promise.all([
+      safeProfile.freeContact
+        ? prisma.profile.findUnique({ where: { userId: session.user.id }, select: { status: true } })
+        : null,
+      prisma.connection.findFirst({
+        where: {
+          status: ConnectionStatus.ACCEPTED,
+          OR: [
+            { senderId: session.user.id, receiverProfileId: profile.id },
+            { receiverId: session.user.id, senderProfileId: profile.id },
+          ],
+        },
+        select: { id: true },
+      }),
+    ]);
 
-    if (connection) {
-      // Contact numbers are what a connection pays for, so both are always shown
+    const freeUnlock = safeProfile.freeContact && !!ownProfile && FREE_CONTACT_STATUSES.includes(ownProfile.status);
+    needsBiodata = safeProfile.freeContact && !freeUnlock && !connection;
+
+    if (freeUnlock || connection) {
       safeProfile.phoneNumber = profile.phoneNumber;
       safeProfile.guardianPhone = profile.guardianPhone;
     }
   }
 
-  return NextResponse.json({ profile: safeProfile });
+  return NextResponse.json({ profile: { ...safeProfile, needsBiodata } });
 }

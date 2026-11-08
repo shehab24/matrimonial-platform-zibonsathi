@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { ProfileStatus, ReportStatus } from '@prisma/client';
@@ -143,6 +144,30 @@ export async function suspendProfile(profileId: string, reason: string) {
   } catch (error) {
     console.error('suspendProfile error:', error);
     return { success: false, error: 'স্থগিত করা ব্যর্থ হয়েছে' };
+  }
+}
+
+/**
+ * Permanently delete a biodata (admin only). The member's account stays, so they can log in and write a new one.
+ * Photos and view history cascade; connections involving this biodata (and their messages) are removed too,
+ * since they cannot exist without it.
+ */
+export async function deleteProfile(profileId: string) {
+  try {
+    await requireAdmin();
+
+    await prisma.$transaction(async (tx) => {
+      const connectionFilter = { OR: [{ senderProfileId: profileId }, { receiverProfileId: profileId }] };
+      await tx.message.deleteMany({ where: { connection: connectionFilter } });
+      await tx.connection.deleteMany({ where: connectionFilter });
+      await tx.profile.delete({ where: { id: profileId } });
+    });
+
+    revalidatePath('/', 'layout');
+    return { success: true };
+  } catch (error) {
+    console.error('deleteProfile error:', error);
+    return { success: false, error: 'বায়োডাটা মুছে ফেলা ব্যর্থ হয়েছে' };
   }
 }
 

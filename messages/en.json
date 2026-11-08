@@ -555,7 +555,11 @@
     "ownBiodata": "This is your own biodata",
     "editBiodata": "Edit",
     "verseBody": "And among His signs is that He created for you spouses from among yourselves, so that you may find tranquility in them.",
-    "verseRef": "— Surah Ar-Rum : 21"
+    "verseRef": "— Surah Ar-Rum : 21",
+    "contactLoginRequired": "This biodata's contact details are free. Log in and submit your own biodata to see them.",
+    "contactNeedsBiodata": "This biodata's contact details are free. Submit your own biodata to see them.",
+    "submitBiodataToContact": "Submit your biodata",
+    "contactUnavailable": "No contact details have been added to this biodata."
   },
   "errors": {
     "emailTaken": "An account with this email already exists",
@@ -600,7 +604,8 @@
     "wrongPassword": "Current password is incorrect",
     "phoneInvalid": "Enter a valid mobile number (e.g. 01XXXXXXXXX)",
     "paymentUnavailable": "Online payment isn't available right now. Please try later or contact support.",
-    "paymentStartFailed": "Couldn't start the payment. Please try again in a moment."
+    "paymentStartFailed": "Couldn't start the payment. Please try again in a moment.",
+    "importedNoConnection": "This biodata's contact details are free. Submit your own biodata to see them, no request needed."
   },
   "notifications": {
     "title": "Notifications",
