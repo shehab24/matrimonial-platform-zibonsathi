@@ -78,10 +78,9 @@ export async function GET(
     freeContact: isImportedEmail(profile.user.email),
   };
 
-  // Server-side only. Contact numbers are revealed when the viewer is logged in and either:
-  //  - has an ACCEPTED connection with this biodata, or
-  //  - this is an imported biodata (free for every logged-in member).
-  // The viewer's own biodata status never matters here.
+  // Server-side only. Contact numbers are revealed when the viewer has an ACCEPTED connection.
+  // Imported biodatas are free for any logged-in user.
+  // No biodata approval required for the viewer.
   if (session?.user?.id && !safeProfile.isOwn) {
     const connection = safeProfile.freeContact
       ? null
