@@ -22,10 +22,7 @@ export async function sendConnectionRequest(receiverProfileId: string) {
       return { success: false, error: await actionError('ownProfileNotFound') };
     }
 
-    // Only members with a published biodata can send proposals
-    if (senderProfile.status !== ProfileStatus.APPROVED) {
-      return { success: false, error: await actionError('ownProfileNotApproved') };
-    }
+    // Removed: approval requirement - any user with a profile can send connection requests
 
     const receiverProfile = await prisma.profile.findUnique({
       where: { id: receiverProfileId },
