@@ -60,10 +60,8 @@ interface ProfileData {
   approvedAt: string | null;
   createdAt: string | null;
   isOwn: boolean;
-  // Imported biodata: contact numbers are free for members who have submitted their own biodata
+  // Imported biodata: contact numbers are free for any logged-in member
   freeContact?: boolean;
-  // Logged-in viewer hasn't submitted their own biodata yet (submitting it unlocks an imported biodata's numbers)
-  needsBiodata?: boolean;
 }
 
 type Row = { label: string; value: React.ReactNode };
@@ -345,20 +343,13 @@ export function BiodataDetail({ slug }: { slug: string }) {
 
   // Contact button, shared by the sidebar and the contact section
   const connectButton = (className?: string) => {
-    // Imported biodata: no connection needed, just log in and submit your own biodata
+    // Imported biodata: no connection needed, just log in
     if (profile.freeContact) {
       if (hasContact) return null;
       if (sessionStatus === 'unauthenticated') {
         return (
           <Link href={loginHref} className={cn('block', className)}>
             <Button className="w-full h-11 rounded-xl">{t('loginToContact')}</Button>
-          </Link>
-        );
-      }
-      if (profile.needsBiodata) {
-        return (
-          <Link href="/profile" className={cn('block', className)}>
-            <Button className="w-full h-11 rounded-xl"><Pencil className="h-4 w-4 mr-2" />{t('submitBiodataToContact')}</Button>
           </Link>
         );
       }
@@ -491,7 +482,7 @@ export function BiodataDetail({ slug }: { slug: string }) {
                 <div className="rounded-xl border border-dashed border-green-200 bg-green-50/60 p-5 text-center">
                   <p className="mx-auto max-w-md text-[14px] leading-relaxed text-gray-700">
                     {profile.freeContact
-                      ? sessionStatus === 'unauthenticated' ? t('contactLoginRequired') : profile.needsBiodata ? t('contactNeedsBiodata') : t('contactUnavailable')
+                      ? sessionStatus === 'unauthenticated' ? t('contactLoginRequired') : t('contactUnavailable')
                       : connectionStatus === 'PENDING' ? t('contactPending') : t('contactLocked')}
                   </p>
                   <div className="mx-auto mt-4 max-w-xs">{connectButton()}</div>

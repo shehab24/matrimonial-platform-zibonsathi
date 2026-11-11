@@ -5,10 +5,6 @@ import { actionError } from '@/lib/action-error';
 import { ProfileStatus, ConnectionStatus } from '@prisma/client';
 import { isImportedEmail } from '@/lib/imported-biodata';
 
-// On an imported biodata, a logged-in member whose own biodata is in one of these states sees the contact numbers
-// without a connection
-const FREE_CONTACT_STATUSES: ProfileStatus[] = [ProfileStatus.PENDING_APPROVAL, ProfileStatus.APPROVED];
-
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -78,39 +74,33 @@ export async function GET(
     // NEVER include phoneNumber or guardianPhone unless authorized
     phoneNumber: null as string | null,
     guardianPhone: null as string | null,
-    // Imported biodata: contact is free for members who have submitted their own biodata (no connection needed)
+    // Imported biodata: contact is free for any logged-in member (no connection or own biodata needed)
     freeContact: isImportedEmail(profile.user.email),
   };
 
-  // Server-side only. Contact numbers are revealed when the viewer either:
+  // Server-side only. Contact numbers are revealed when the viewer is logged in and either:
   //  - has an ACCEPTED connection with this biodata, or
-  //  - this is an imported biodata and the viewer has submitted their own biodata (partially free access).
-  let needsBiodata = false;
+  //  - this is an imported biodata (free for every logged-in member).
+  // The viewer's own biodata status never matters here.
   if (session?.user?.id && !safeProfile.isOwn) {
-    const [ownProfile, connection] = await Promise.all([
-      safeProfile.freeContact
-        ? prisma.profile.findUnique({ where: { userId: session.user.id }, select: { status: true } })
-        : null,
-      prisma.connection.findFirst({
-        where: {
-          status: ConnectionStatus.ACCEPTED,
-          OR: [
-            { senderId: session.user.id, receiverProfileId: profile.id },
-            { receiverId: session.user.id, senderProfileId: profile.id },
-          ],
-        },
-        select: { id: true },
-      }),
-    ]);
+    const connection = safeProfile.freeContact
+      ? null
+      : await prisma.connection.findFirst({
+          where: {
+            status: ConnectionStatus.ACCEPTED,
+            OR: [
+              { senderId: session.user.id, receiverProfileId: profile.id },
+              { receiverId: session.user.id, senderProfileId: profile.id },
+            ],
+          },
+          select: { id: true },
+        });
 
-    const freeUnlock = safeProfile.freeContact && !!ownProfile && FREE_CONTACT_STATUSES.includes(ownProfile.status);
-    needsBiodata = safeProfile.freeContact && !freeUnlock && !connection;
-
-    if (freeUnlock || connection) {
+    if (safeProfile.freeContact || connection) {
       safeProfile.phoneNumber = profile.phoneNumber;
       safeProfile.guardianPhone = profile.guardianPhone;
     }
   }
 
-  return NextResponse.json({ profile: { ...safeProfile, needsBiodata } });
+  return NextResponse.json({ profile: safeProfile });
 }
