@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ExternalLink, User } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Pencil, User } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import { BiodataReviewActions } from '@/components/admin/biodata-review-actions';
 import { DeleteBiodataButton } from '@/components/admin/delete-biodata-button';
@@ -72,6 +72,12 @@ export default async function AdminBiodataDetailPage({ params }: { params: Promi
           </p>
         </div>
         <span className={`rounded-md px-3 py-1 text-sm font-semibold ${STATUS_STYLES[p.status]}`}>{STATUS_LABELS[p.status]}</span>
+        <Link
+          href={`/admin/biodatas/${encodeURIComponent(p.oderId ?? p.id)}/edit`}
+          className="inline-flex items-center gap-1 rounded-md border border-green-700 px-3 py-1 text-sm font-medium text-green-700 hover:bg-green-50"
+        >
+          <Pencil className="h-3.5 w-3.5" /> সম্পাদনা
+        </Link>
         {p.status === 'APPROVED' && (
           <Link href={biodataHref(p)} target="_blank" className="inline-flex items-center gap-1 text-sm text-green-700 hover:underline">
             পাবলিক পেজ <ExternalLink className="h-3.5 w-3.5" />

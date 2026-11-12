@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma';
 import { ProfileStatus, ReportStatus } from '@prisma/client';
 import { assignBiodataId } from '@/lib/biodata-id';
 import { notify } from '@/lib/notifications';
+import { adminProfileInputSchema } from '@/lib/profile-schema';
+import { normalizePhone } from '@/lib/phone';
 
 const APPROVAL_BONUS_CREDITS = 1;
 // Also identifies the grant in the ledger, so keep it stable once users have received it
@@ -144,6 +146,49 @@ export async function suspendProfile(profileId: string, reason: string) {
   } catch (error) {
     console.error('suspendProfile error:', error);
     return { success: false, error: 'স্থগিত করা ব্যর্থ হয়েছে' };
+  }
+}
+
+/**
+ * Edit a member's biodata (admin only), e.g. to fix a typo or remove inappropriate text.
+ * Unlike a member's own edit, this keeps the current status, so an approved biodata stays published.
+ * Gender is locked once a biodata number is assigned, because the ZBM/ZBF prefix depends on it.
+ */
+export async function adminUpdateProfile(profileId: string, data: Record<string, unknown>) {
+  try {
+    await requireAdmin();
+
+    const parsed = adminProfileInputSchema.safeParse(data);
+    if (!parsed.success) {
+      return { success: false, error: 'তথ্যগুলো সঠিক নয়, আবার দেখে নিন' };
+    }
+
+    const existing = await prisma.profile.findUnique({ where: { id: profileId }, select: { oderId: true, gender: true } });
+    if (!existing) return { success: false, error: 'বায়োডাটা পাওয়া যায়নি' };
+
+    const fields = { ...parsed.data };
+
+    // Numbers are optional for an admin (imported biodatas may lack one), but must be valid if given
+    for (const key of ['phoneNumber', 'guardianPhone'] as const) {
+      if (!fields[key]) { fields[key] = null; continue; }
+      const phone = normalizePhone(fields[key]);
+      if (!phone) return { success: false, error: 'মোবাইল নম্বর সঠিক নয়' };
+      fields[key] = phone;
+    }
+
+    if (existing.oderId) delete fields.gender;
+
+    const dob = fields.dateOfBirth ? new Date(fields.dateOfBirth) : null;
+    const profile = await prisma.profile.update({
+      where: { id: profileId },
+      data: { ...fields, dateOfBirth: dob && !Number.isNaN(dob.getTime()) ? dob : null },
+    });
+
+    revalidatePath('/', 'layout');
+    return { success: true, oderId: profile.oderId };
+  } catch (error) {
+    console.error('adminUpdateProfile error:', error);
+    return { success: false, error: 'বায়োডাটা আপডেট ব্যর্থ হয়েছে' };
   }
 }
 
