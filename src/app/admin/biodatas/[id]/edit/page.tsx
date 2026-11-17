@@ -68,6 +68,7 @@ export default async function AdminBiodataEditPage({ params }: { params: Promise
           partnerPreferences: str(p.partnerPreferences),
           phoneNumber: str(p.phoneNumber),
           guardianPhone: str(p.guardianPhone),
+          contactEmail: str(p.contactEmail),
         }}
       />
     </div>

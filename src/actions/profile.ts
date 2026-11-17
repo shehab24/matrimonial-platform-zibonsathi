@@ -53,6 +53,7 @@ export async function upsertProfile(data: {
   partnerPreferences?: string;
   phoneNumber?: string;
   guardianPhone?: string;
+  contactEmail?: string;
   hadiaPledge?: number | null;
   removalPledgeAccepted?: boolean;
 }) {
@@ -63,7 +64,8 @@ export async function upsertProfile(data: {
 
   const parsed = profileInputSchema.safeParse(data);
   if (!parsed.success) {
-    return { success: false, error: await actionError('profileSaveFailed') };
+    const badEmail = parsed.error.issues.some((i) => i.path[0] === 'contactEmail');
+    return { success: false, error: await actionError(badEmail ? 'emailInvalid' : 'profileSaveFailed') };
   }
 
   try {
@@ -79,6 +81,10 @@ export async function upsertProfile(data: {
       return { success: false, error: await actionError('phoneInvalid') };
     }
     fields.phoneNumber = phoneNumber;
+    // Email is mandatory too: it is one of the contact details a connection reveals
+    if (!fields.contactEmail) {
+      return { success: false, error: await actionError('emailInvalid') };
+    }
     // Gender is fixed once set: it decides the ZBM/ZBF biodata number
     if (existing?.gender) delete fields.gender;
     const dob = fields.dateOfBirth ? new Date(fields.dateOfBirth) : null;
@@ -174,6 +180,7 @@ export async function getPublicProfile(id: string) {
     ...profile,
     phoneNumber: null as string | null,
     guardianPhone: null as string | null,
+    contactEmail: null as string | null,
   };
 
   // Check if requesting user has ACCEPTED connection
@@ -192,6 +199,7 @@ export async function getPublicProfile(id: string) {
       // Contact numbers are what a connection pays for, so both are always shown
       safeProfile.phoneNumber = profile.phoneNumber;
       safeProfile.guardianPhone = profile.guardianPhone;
+      safeProfile.contactEmail = profile.contactEmail;
     }
   }
 

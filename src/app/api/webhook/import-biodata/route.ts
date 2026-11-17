@@ -139,6 +139,10 @@ export async function POST(request: Request) {
           // Contact
           phoneNumber: data.phoneNumber || data.phone || data.mobile || null,
           guardianPhone: data.guardianPhone || data.guardianMobile || null,
+          contactEmail: (() => {
+            const raw = data.contactEmail || data.email || data.emailAddress || data.personalEmail || data.mail || data.contact_email;
+            return typeof raw === 'string' && raw.includes('@') ? raw.trim().toLowerCase() : null;
+          })(),
 
           // Admin note
           adminNote: `Imported via API on ${new Date().toISOString()}. Source: ${data.source || 'n8n/telegram'}`,
@@ -206,7 +210,7 @@ export async function GET(request: Request) {
       'education', 'educationDetails', 'occupation', 'occupationDetails', 'monthlyIncome/income',
       'maritalStatus', 'numberOfChildren/children', 'fatherAlive/father', 'motherAlive/mother', 'siblings',
       'familyType', 'familyStatus', 'prayerHabit/prayer', 'beardOrHijab', 'mazhab',
-      'aboutMe/bio', 'partnerPreferences/lookingFor', 'phoneNumber/phone', 'guardianPhone'
+      'aboutMe/bio', 'partnerPreferences/lookingFor', 'phoneNumber/phone', 'guardianPhone', 'contactEmail'
     ]
   });
 }

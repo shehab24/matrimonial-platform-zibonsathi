@@ -135,6 +135,7 @@ export default async function AdminBiodataDetailPage({ params }: { params: Promi
           <Section compact title="যোগাযোগ (শুধু অ্যাডমিন)" rows={[
             ['মোবাইল', p.phoneNumber],
             ['অভিভাবক', p.guardianPhone],
+            ['ইমেইল', p.contactEmail],
           ]} />
 
           <Section compact title="অঙ্গীকার" rows={[

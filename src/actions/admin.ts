@@ -160,7 +160,8 @@ export async function adminUpdateProfile(profileId: string, data: Record<string,
 
     const parsed = adminProfileInputSchema.safeParse(data);
     if (!parsed.success) {
-      return { success: false, error: 'তথ্যগুলো সঠিক নয়, আবার দেখে নিন' };
+      const badEmail = parsed.error.issues.some((i) => i.path[0] === 'contactEmail');
+      return { success: false, error: badEmail ? 'সঠিক ইমেইল ঠিকানা দিন' : 'তথ্যগুলো সঠিক নয়, আবার দেখে নিন' };
     }
 
     const existing = await prisma.profile.findUnique({ where: { id: profileId }, select: { oderId: true, gender: true } });

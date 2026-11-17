@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
         religion: true,
         approvedAt: true,
         photos: { where: { isPrimary: true }, take: 1, select: { url: true } },
-        // NEVER include phoneNumber or guardianPhone
+        // NEVER include phoneNumber, guardianPhone or contactEmail
       },
     }),
     prisma.profile.count({ where }),

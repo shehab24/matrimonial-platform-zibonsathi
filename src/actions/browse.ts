@@ -153,7 +153,7 @@ export async function browseProfiles(filters: BrowseFilters = {}) {
           take: 1,
           select: { url: true },
         },
-        // NEVER include phoneNumber or guardianPhone
+        // NEVER include phoneNumber, guardianPhone or contactEmail
       },
     }),
     prisma.profile.count({ where }),

@@ -37,6 +37,10 @@ export const profileInputSchema = z.object({
   partnerPreferences: optText,
   phoneNumber: optText,
   guardianPhone: optText,
+  contactEmail: z.preprocess(
+    (v) => (typeof v === 'string' ? (v.trim() === '' ? null : v.trim().toLowerCase()) : v),
+    z.string().email().max(200).nullish()
+  ),
   hadiaPledge: z.preprocess(
     (v) => (v === '' || v === null || (typeof v === 'number' && Number.isNaN(v)) ? null : Number(v)),
     z.number().int().min(0).max(10_000_000).nullish()

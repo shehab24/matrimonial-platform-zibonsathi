@@ -250,6 +250,7 @@ export async function getContactInfo(profileId: string) {
       // Contact numbers are what a connection pays for, so both are always shown
       phoneNumber: profile.phoneNumber,
       guardianPhone: profile.guardianPhone,
+      contactEmail: profile.contactEmail,
     };
   } catch (error) {
     console.error('getContactInfo error:', error);

@@ -316,6 +316,10 @@ export default function ProfilePage() {
                   <Label>{t('guardianPhone')}</Label>
                   <Input value={(profile.guardianPhone as string) || ''} onChange={e => handleChange('guardianPhone', e.target.value)} placeholder="01XXXXXXXXX" />
                 </div>
+                <div className="space-y-2">
+                  <Label>{t('contactEmail')} <span className="text-red-600">*</span></Label>
+                  <Input type="email" required value={(profile.contactEmail as string) || ''} onChange={e => handleChange('contactEmail', e.target.value)} placeholder="example@gmail.com" />
+                </div>
               </div>
               <p className="text-sm text-gray-500">{t('contactNote')}</p>
             </>

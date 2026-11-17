@@ -71,9 +71,10 @@ export async function GET(
     createdAt: profile.createdAt,
     // Lets the page hide proposal/favorite/report buttons on the viewer's own biodata
     isOwn: session?.user?.id === profile.userId,
-    // NEVER include phoneNumber or guardianPhone unless authorized
+    // NEVER include phoneNumber, guardianPhone or contactEmail unless authorized
     phoneNumber: null as string | null,
     guardianPhone: null as string | null,
+    contactEmail: null as string | null,
     // Imported biodata: contact is free for any logged-in member (no connection or own biodata needed)
     freeContact: isImportedEmail(profile.user.email),
   };
@@ -98,6 +99,7 @@ export async function GET(
     if (safeProfile.freeContact || connection) {
       safeProfile.phoneNumber = profile.phoneNumber;
       safeProfile.guardianPhone = profile.guardianPhone;
+      safeProfile.contactEmail = profile.contactEmail;
     }
   }
 

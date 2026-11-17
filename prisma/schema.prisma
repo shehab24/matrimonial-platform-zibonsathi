@@ -226,6 +226,7 @@ model Profile {
   // Contact (PRIVATE — never expose without authorization)
   phoneNumber         String?
   guardianPhone       String?
+  contactEmail        String?       // Shown like the phone numbers: only to connected members
 
   // Photos
   photos              ProfilePhoto[]

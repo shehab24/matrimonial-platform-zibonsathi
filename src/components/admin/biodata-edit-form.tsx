@@ -17,7 +17,7 @@ type Fields = Record<
   | 'displayName' | 'dateOfBirth' | 'gender' | 'country' | 'division' | 'district' | 'upazila'
   | 'education' | 'educationDetails' | 'occupation' | 'occupationDetails' | 'monthlyIncome'
   | 'maritalStatus' | 'numberOfChildren' | 'fatherAlive' | 'motherAlive' | 'siblings' | 'familyType' | 'familyStatus'
-  | 'prayerHabit' | 'beardOrHijab' | 'mazhab' | 'sect' | 'aboutMe' | 'partnerPreferences' | 'phoneNumber' | 'guardianPhone',
+  | 'prayerHabit' | 'beardOrHijab' | 'mazhab' | 'sect' | 'aboutMe' | 'partnerPreferences' | 'phoneNumber' | 'guardianPhone' | 'contactEmail',
   string
 >;
 
@@ -152,6 +152,7 @@ export function AdminBiodataEditForm({
       {section('যোগাযোগ (শুধু অ্যাডমিন)', <>
         {text('phoneNumber', 'মোবাইল', { type: 'tel', placeholder: '01XXXXXXXXX' })}
         {text('guardianPhone', 'অভিভাবক', { type: 'tel', placeholder: '01XXXXXXXXX' })}
+        {text('contactEmail', 'ইমেইল', { type: 'email', placeholder: 'example@gmail.com' })}
       </>)}
 
       <div className="flex justify-end gap-3">

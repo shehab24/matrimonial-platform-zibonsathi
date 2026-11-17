@@ -57,6 +57,7 @@ interface ProfileData {
   photos: { url: string; isPrimary: boolean }[];
   phoneNumber: string | null;
   guardianPhone: string | null;
+  contactEmail: string | null;
   approvedAt: string | null;
   createdAt: string | null;
   isOwn: boolean;
@@ -339,7 +340,7 @@ export function BiodataDetail({ slug }: { slug: string }) {
     },
   ];
 
-  const hasContact = !!(profile.phoneNumber || profile.guardianPhone);
+  const hasContact = !!(profile.phoneNumber || profile.guardianPhone || profile.contactEmail);
 
   // Contact button, shared by the sidebar and the contact section
   const connectButton = (className?: string) => {
@@ -477,6 +478,7 @@ export function BiodataDetail({ slug }: { slug: string }) {
                 <RowsTable rows={[
                   { label: t('mobile'), value: profile.phoneNumber },
                   { label: t('guardian'), value: profile.guardianPhone },
+                  { label: t('email'), value: profile.contactEmail },
                 ].filter(r => r.value)} />
               ) : (
                 <div className="rounded-xl border border-dashed border-green-200 bg-green-50/60 p-5 text-center">
