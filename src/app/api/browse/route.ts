@@ -59,7 +59,6 @@ export async function GET(req: NextRequest) {
       orderBy: { approvedAt: 'desc' },
       select: {
         id: true,
-        displayName: true,
         dateOfBirth: true,
         gender: true,
         division: true,
@@ -70,7 +69,7 @@ export async function GET(req: NextRequest) {
         religion: true,
         approvedAt: true,
         photos: { where: { isPrimary: true }, take: 1, select: { url: true } },
-        // NEVER include phoneNumber, guardianPhone or contactEmail
+        // NEVER include displayName, phoneNumber, guardianPhone or contactEmail (unlocked on the biodata page)
       },
     }),
     prisma.profile.count({ where }),

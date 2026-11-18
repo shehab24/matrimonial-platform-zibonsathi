@@ -345,8 +345,9 @@ export async function listAllUsers() {
         emailVerified: true,
         createdAt: true,
         profile: {
-          select: { status: true, displayName: true },
+          select: { status: true, displayName: true, oderId: true },
         },
+        creditBalance: { select: { balance: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -355,6 +356,50 @@ export async function listAllUsers() {
   } catch (error) {
     console.error('listAllUsers error:', error);
     return { success: false, error: 'ব্যবহারকারী লোড ব্যর্থ হয়েছে' };
+  }
+}
+
+const MAX_GIFT_CREDITS = 100;
+const DEFAULT_GIFT_NOTE = 'অ্যাডমিনের পক্ষ থেকে উপহার';
+
+/** Admin gift: adds free connection credits to any user's balance, recorded in their ledger. */
+export async function grantCredits(userId: string, amount: number, note?: string) {
+  try {
+    await requireAdmin();
+
+    if (!Number.isInteger(amount) || amount < 1 || amount > MAX_GIFT_CREDITS) {
+      return { success: false, error: `১ থেকে ${MAX_GIFT_CREDITS.toLocaleString('bn-BD')} এর মধ্যে সংখ্যা দিন` };
+    }
+    const cleanNote = note?.trim().slice(0, 200) || DEFAULT_GIFT_NOTE;
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) return { success: false, error: 'ব্যবহারকারী পাওয়া যায়নি' };
+
+    const balance = await prisma.$transaction(async (tx) => {
+      const updated = await tx.creditBalance.upsert({
+        where: { userId },
+        create: { userId, balance: amount },
+        update: { balance: { increment: amount } },
+      });
+      await tx.creditLedger.create({
+        data: {
+          userId,
+          type: 'ADJUSTMENT',
+          amount,
+          balanceBefore: updated.balance - amount,
+          balanceAfter: updated.balance,
+          note: cleanNote,
+        },
+      });
+      return updated.balance;
+    });
+
+    revalidatePath('/admin/users');
+    revalidatePath('/credits');
+    return { success: true, balance };
+  } catch (error) {
+    console.error('grantCredits error:', error);
+    return { success: false, error: 'সংযোগ দেওয়া ব্যর্থ হয়েছে' };
   }
 }
 

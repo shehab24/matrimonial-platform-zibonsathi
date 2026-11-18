@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
@@ -66,12 +66,12 @@ function ResetForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="password">{t('newPassword')}</Label>
-        <Input id="password" type="password" placeholder={t('passwordMinPlaceholder')} {...register('password')} />
+        <PasswordInput id="password" placeholder={t('passwordMinPlaceholder')} {...register('password')} />
         {errors.password && <p className="text-sm text-red-600">{tv(errors.password.message ?? '')}</p>}
       </div>
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
-        <Input id="confirmPassword" type="password" placeholder={t('confirmPasswordPlaceholder')} {...register('confirmPassword')} />
+        <PasswordInput id="confirmPassword" placeholder={t('confirmPasswordPlaceholder')} {...register('confirmPassword')} />
         {errors.confirmPassword && <p className="text-sm text-red-600">{tv(errors.confirmPassword.message ?? '')}</p>}
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>

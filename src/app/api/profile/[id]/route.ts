@@ -40,7 +40,8 @@ export async function GET(
   const safeProfile = {
     id: profile.id,
     oderId: profile.oderId,
-    displayName: profile.displayName,
+    // The name is part of the paid contact details: only sent once unlocked (or to the owner)
+    displayName: session?.user?.id === profile.userId ? profile.displayName : null,
     dateOfBirth: profile.dateOfBirth,
     gender: profile.gender,
     religion: profile.religion,
@@ -79,27 +80,29 @@ export async function GET(
     freeContact: isImportedEmail(profile.user.email),
   };
 
-  // Server-side only. Contact numbers are revealed when the viewer has an ACCEPTED connection.
-  // Imported biodatas are free for any logged-in user.
-  // No biodata approval required for the viewer.
+  // Server-side only. Contact numbers are revealed when the viewer sent (paid for) a connection to this
+  // biodata, or received one from it and accepted. Imported biodatas are free for any logged-in user.
   if (session?.user?.id && !safeProfile.isOwn) {
     const connection = safeProfile.freeContact
       ? null
       : await prisma.connection.findFirst({
           where: {
-            status: ConnectionStatus.ACCEPTED,
             OR: [
+              // The sender paid a credit for this contact, so it's theirs straight away (even if later declined)
               { senderId: session.user.id, receiverProfileId: profile.id },
-              { receiverId: session.user.id, senderProfileId: profile.id },
+              // The receiver didn't pay; they see the sender's contact only after accepting
+              { receiverId: session.user.id, senderProfileId: profile.id, status: ConnectionStatus.ACCEPTED },
             ],
           },
           select: { id: true },
         });
 
     if (safeProfile.freeContact || connection) {
+      safeProfile.displayName = profile.displayName;
       safeProfile.phoneNumber = profile.phoneNumber;
       safeProfile.guardianPhone = profile.guardianPhone;
-      safeProfile.contactEmail = profile.contactEmail;
+      // No separate contact email given: fall back to the account email (imported accounts only have a placeholder)
+      safeProfile.contactEmail = profile.contactEmail || (safeProfile.freeContact ? null : profile.user.email);
     }
   }
 

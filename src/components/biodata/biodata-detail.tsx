@@ -177,6 +177,10 @@ export function BiodataDetail({ slug }: { slug: string }) {
     const result = await sendConnectionRequest(profileId);
     if (result.success) {
       setConnectionStatus('PENDING');
+      // The credit unlocks the contact right away; reload so the numbers appear
+      const res = await fetch(`/api/profile/${encodeURIComponent(slug)}`).catch(() => null);
+      const data = res?.ok ? await res.json() : null;
+      if (data?.profile) setProfile(data.profile);
       toast({ variant: 'success', title: t('requestSentToast') });
     } else {
       toast({
@@ -476,6 +480,7 @@ export function BiodataDetail({ slug }: { slug: string }) {
               <SectionTitle icon={Phone} title={t('contactTitle')} />
               {hasContact ? (
                 <RowsTable rows={[
+                  { label: t('name'), value: profile.displayName },
                   { label: t('mobile'), value: profile.phoneNumber },
                   { label: t('guardian'), value: profile.guardianPhone },
                   { label: t('email'), value: profile.contactEmail },

@@ -89,7 +89,7 @@ export async function sendConnectionRequest(receiverProfileId: string) {
           balanceBefore: updatedBalance.balance + 1,
           balanceAfter: updatedBalance.balance,
           connectionId: connection.id,
-          note: 'সংযোগ অনুরোধ পাঠানো হয়েছে',
+          note: 'যোগাযোগ তথ্য দেখা হয়েছে',
         },
       });
 
@@ -224,6 +224,7 @@ export async function getContactInfo(profileId: string) {
   try {
     const profile = await prisma.profile.findUnique({
       where: { id: profileId },
+      include: { user: { select: { email: true } } },
     });
 
     if (!profile) {
@@ -233,10 +234,10 @@ export async function getContactInfo(profileId: string) {
     // CRITICAL: server-side only check
     const connection = await prisma.connection.findFirst({
       where: {
-        status: ConnectionStatus.ACCEPTED,
         OR: [
+          // Paid by the sender, so revealed immediately; the receiver sees it once they accept
           { senderId: session.user.id, receiverProfileId: profileId },
-          { receiverId: session.user.id, senderProfileId: profileId },
+          { receiverId: session.user.id, senderProfileId: profileId, status: ConnectionStatus.ACCEPTED },
         ],
       },
     });
@@ -247,10 +248,12 @@ export async function getContactInfo(profileId: string) {
 
     return {
       authorized: true,
+      displayName: profile.displayName,
       // Contact numbers are what a connection pays for, so both are always shown
       phoneNumber: profile.phoneNumber,
       guardianPhone: profile.guardianPhone,
-      contactEmail: profile.contactEmail,
+      // Fall back to the account email; imported accounts only have a placeholder one
+      contactEmail: profile.contactEmail || (isImportedEmail(profile.user.email) ? null : profile.user.email),
     };
   } catch (error) {
     console.error('getContactInfo error:', error);

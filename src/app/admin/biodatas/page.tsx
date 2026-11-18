@@ -108,53 +108,93 @@ export default async function AdminBiodatasPage({ searchParams }: { searchParams
           <Button type="submit">খুঁজুন</Button>
         </form>
 
-        {/* Table */}
+        {/* List */}
         {profiles.length === 0 ? (
           <p className="px-6 py-16 text-center text-sm text-gray-500">কোনো বায়োডাটা পাওয়া যায়নি</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-gray-600">
+          <>
+            {/* Desktop: table */}
+            <table className="hidden md:table w-full table-fixed text-sm">
+              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">বায়োডাটা</th>
-                  <th className="px-4 py-3 font-medium">ইমেইল</th>
-                  <th className="px-4 py-3 font-medium">ধরন</th>
-                  <th className="px-4 py-3 font-medium">ঠিকানা</th>
-                  <th className="px-4 py-3 font-medium">অবস্থা</th>
-                  <th className="px-4 py-3 font-medium">আপডেট</th>
-                  <th className="px-4 py-3" />
+                  <th className="w-[22%] px-4 py-3 font-medium">ধরন ও ঠিকানা</th>
+                  <th className="w-[19%] px-4 py-3 font-medium">অবস্থা</th>
+                  <th className="w-[13%] px-4 py-3 font-medium">আপডেট</th>
+                  <th className="w-[150px] px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {profiles.map((p) => (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{p.displayName ?? 'নাম নেই'}</p>
-                      <p className="text-xs text-gray-500">{p.oderId ?? 'আইডি নেই'}</p>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {p.user.email}
-                      {p.user.isSuspended && <span className="ml-2 rounded bg-red-100 px-1.5 py-0.5 text-[11px] text-red-700">অ্যাকাউন্ট স্থগিত</span>}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{p.gender ? GENDER_LABELS[p.gender] : '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{[p.district, p.division].filter(Boolean).join(', ') || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[p.status]}`}>{STATUS_LABELS[p.status]}</span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{bnDate(p.updatedAt)}</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="inline-flex items-center gap-2">
-                      <Button size="sm" variant={p.status === ProfileStatus.PENDING_APPROVAL ? 'default' : 'outline'} asChild>
-                        <Link href={adminBiodataHref(p)}>{p.status === ProfileStatus.PENDING_APPROVAL ? 'রিভিউ করুন' : 'দেখুন'}</Link>
-                      </Button>
-                      <DeleteBiodataButton profileId={p.id} label={p.oderId ?? p.displayName} size="sm" />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {profiles.map((p) => {
+                  const pending = p.status === ProfileStatus.PENDING_APPROVAL;
+                  return (
+                    <tr key={p.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar name={p.displayName} gender={p.gender} />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-gray-900">
+                              {p.displayName ?? <span className="text-gray-400">নাম নেই</span>}
+                              <span className="ml-2 font-mono text-xs font-normal text-gray-500">{p.oderId ?? 'আইডি নেই'}</span>
+                            </p>
+                            <p className="truncate text-xs text-gray-500" title={p.user.email}>{p.user.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        <p>{p.gender ? GENDER_LABELS[p.gender] : '—'}</p>
+                        <p className="truncate text-xs text-gray-500">{location(p)}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadges status={p.status} suspended={p.user.isSuspended} />
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{bnDate(p.updatedAt)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button size="sm" variant={pending ? 'default' : 'outline'} asChild>
+                            <Link href={adminBiodataHref(p)}>{pending ? 'রিভিউ করুন' : 'দেখুন'}</Link>
+                          </Button>
+                          <DeleteBiodataButton profileId={p.id} label={p.oderId ?? p.displayName} size="sm" />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-          </div>
+
+            {/* Mobile: cards */}
+            <ul className="md:hidden divide-y divide-gray-100">
+              {profiles.map((p) => {
+                const pending = p.status === ProfileStatus.PENDING_APPROVAL;
+                return (
+                  <li key={p.id} className="space-y-3 p-4">
+                    <div className="flex items-start gap-3">
+                      <Avatar name={p.displayName} gender={p.gender} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-gray-900">{p.displayName ?? 'নাম নেই'}</p>
+                        <p className="font-mono text-xs text-gray-500">{p.oderId ?? 'আইডি নেই'}</p>
+                        <p className="truncate text-xs text-gray-500">{p.user.email}</p>
+                      </div>
+                      <span className="shrink-0 text-xs text-gray-400">{bnDate(p.updatedAt)}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                      <StatusBadges status={p.status} suspended={p.user.isSuspended} />
+                      <span>{p.gender ? GENDER_LABELS[p.gender] : '—'}</span>
+                      <span className="text-gray-300">•</span>
+                      <span>{location(p)}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" className="flex-1" variant={pending ? 'default' : 'outline'} asChild>
+                        <Link href={adminBiodataHref(p)}>{pending ? 'রিভিউ করুন' : 'দেখুন'}</Link>
+                      </Button>
+                      <DeleteBiodataButton profileId={p.id} label={p.oderId ?? p.displayName} size="sm" />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
 
         {totalPages > 1 && (
@@ -173,6 +213,27 @@ export default async function AdminBiodatasPage({ searchParams }: { searchParams
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+const location = (p: { district: string | null; division: string | null }) =>
+  [p.district, p.division].filter(Boolean).join(', ') || 'ঠিকানা নেই';
+
+function Avatar({ name, gender }: { name: string | null; gender: Gender | null }) {
+  const tone = gender === Gender.FEMALE ? 'bg-pink-100 text-pink-700' : gender === Gender.MALE ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500';
+  return (
+    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${tone}`}>
+      {name?.trim().charAt(0).toUpperCase() || '?'}
+    </span>
+  );
+}
+
+function StatusBadges({ status, suspended }: { status: ProfileStatus; suspended: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      <span className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLES[status]}`}>{STATUS_LABELS[status]}</span>
+      {suspended && <span className="whitespace-nowrap rounded-full bg-red-100 px-2.5 py-0.5 text-xs text-red-700">অ্যাকাউন্ট স্থগিত</span>}
     </div>
   );
 }

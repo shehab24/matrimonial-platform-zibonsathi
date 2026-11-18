@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { LayoutDashboard, ClipboardCheck, FileText, Users, Flag, Package, LogOut, ShieldCheck, Settings, CreditCard } from 'lucide-react';
+import { LayoutDashboard, ClipboardCheck, FileText, Users, Flag, Package, LogOut, ShieldCheck, Settings, CreditCard, UserCog } from 'lucide-react';
 
 export function AdminSidebar({ email, pendingCount, openReports }: { email: string; pendingCount: number; openReports: number }) {
   const pathname = usePathname();
@@ -18,6 +18,7 @@ export function AdminSidebar({ email, pendingCount, openReports }: { email: stri
     { href: '/admin/packages', label: 'ক্রেডিট প্যাকেজ', icon: Package },
     { href: '/admin/payments', label: 'পেমেন্ট', icon: CreditCard },
     { href: '/admin/settings', label: 'সেটিংস', icon: Settings },
+    { href: '/admin/account', label: 'আমার অ্যাকাউন্ট', icon: UserCog },
   ];
 
   return (

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Lock, Pencil, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { changePassword } from '@/actions/account';
@@ -72,17 +72,17 @@ export function PasswordForm({ hasPassword: initialHasPassword }: { hasPassword:
           {hasPassword && (
             <div className="space-y-1.5">
               <Label htmlFor="current-password">{t('currentPassword')}</Label>
-              <Input id="current-password" type="password" autoComplete="current-password" required value={current} onChange={e => setCurrent(e.target.value)} />
+              <PasswordInput id="current-password" autoComplete="current-password" required value={current} onChange={e => setCurrent(e.target.value)} />
             </div>
           )}
           <div className="space-y-1.5">
             <Label htmlFor="new-password">{t('newPassword')}</Label>
-            <Input id="new-password" type="password" autoComplete="new-password" required minLength={8} value={next} onChange={e => setNext(e.target.value)} />
+            <PasswordInput id="new-password" autoComplete="new-password" required minLength={8} value={next} onChange={e => setNext(e.target.value)} />
             <p className="text-xs text-gray-500">{t('passwordHint')}</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="confirm-password">{t('confirmPassword')}</Label>
-            <Input id="confirm-password" type="password" autoComplete="new-password" required value={confirm} onChange={e => setConfirm(e.target.value)} />
+            <PasswordInput id="confirm-password" autoComplete="new-password" required value={confirm} onChange={e => setConfirm(e.target.value)} />
             {mismatch && <p className="text-xs text-red-600">{t('mismatch')}</p>}
           </div>
           <div className="flex gap-2">
