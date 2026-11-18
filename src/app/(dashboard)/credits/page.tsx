@@ -3,17 +3,24 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, CreditCard, TrendingUp } from 'lucide-react';
 import { BuyButton } from '@/components/credits/buy-button';
 import { getCodePayConfig } from '@/lib/codepay';
+import { getManualPaymentConfig } from '@/lib/manual-payment';
+import { ManualPayButton } from '@/components/credits/manual-pay-button';
+import { Clock } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { intlLocale } from '@/i18n/config';
 
-export default async function CreditsPage() {
+export default async function CreditsPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
   const session = await auth();
   if (!session?.user?.id) return null;
+  // Sent here from a biodata's contact button: offer a way back. Only same-site biodata paths are accepted.
+  const { from } = await searchParams;
+  const backTo = from && /^\/(biodata|profile)\/[\w-]+$/.test(from) ? from : null;
 
-  const [creditBalance, ledger, packages, codepay] = await Promise.all([
+  const [creditBalance, ledger, packages, codepay, manual, pendingPayments] = await Promise.all([
     prisma.creditBalance.findUnique({ where: { userId: session.user.id } }),
     prisma.creditLedger.findMany({
       where: { userId: session.user.id },
@@ -22,6 +29,12 @@ export default async function CreditsPage() {
     }),
     prisma.creditPackage.findMany({ where: { isActive: true }, orderBy: { credits: 'asc' } }),
     getCodePayConfig(),
+    getManualPaymentConfig(),
+    prisma.payment.findMany({
+      where: { userId: session.user.id, status: 'PENDING', provider: { startsWith: 'manual_' } },
+      orderBy: { createdAt: 'desc' },
+      include: { package: { select: { name: true, credits: true } } },
+    }),
   ]);
 
   const balance = creditBalance?.balance ?? 0;
@@ -32,6 +45,15 @@ export default async function CreditsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-8">{t('title')}</h1>
+
+      {backTo && (
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-green-200 bg-green-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-700">{t('fromBiodata')}</p>
+          <Link href={backTo} className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-green-700 hover:underline">
+            <ArrowLeft className="h-4 w-4" /> {t('backToBiodata')}
+          </Link>
+        </div>
+      )}
 
       {/* Balance Card */}
       <Card className="bg-gradient-to-r from-green-700 to-teal-700 text-white mb-8">
@@ -50,7 +72,10 @@ export default async function CreditsPage() {
       {/* Packages */}
       <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('packages')}</h2>
       {packages.length === 0 ? (
-        <p className="text-gray-500 mb-8">{t('noPackages')}</p>
+        <div className="mb-8 rounded-xl border border-dashed border-gray-300 bg-white px-6 py-8 text-center">
+          <p className="text-gray-700">{t('noPackages')}</p>
+          <p className="mt-1 text-sm text-gray-500">{t('noPackagesHint')}</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {packages.map((pkg) => (
@@ -68,10 +93,44 @@ export default async function CreditsPage() {
                   <span className="text-xl font-semibold">৳{Number(pkg.price).toLocaleString(locale)}</span>
                   <Badge variant="secondary">{pkg.currency}</Badge>
                 </div>
-                <BuyButton packageId={pkg.id} enabled={!!codepay} />
+                {(codepay || !manual) && <BuyButton packageId={pkg.id} enabled={!!codepay} />}
+                {manual && (
+                  <ManualPayButton
+                    pkg={{ id: pkg.id, name: pkg.name }}
+                    accounts={manual.accounts}
+                    instructions={manual.instructions}
+                    priceLabel={`৳${Number(pkg.price).toLocaleString(locale)}`}
+                    variant={codepay ? 'outline' : 'default'}
+                  />
+                )}
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Manual payments waiting for an admin */}
+      {pendingPayments.length > 0 && (
+        <div className="mb-8 rounded-xl border border-yellow-200 bg-yellow-50 p-5">
+          <h2 className="flex items-center gap-2 font-semibold text-yellow-900">
+            <Clock className="h-4 w-4" /> {t('manual.pendingTitle')}
+          </h2>
+          <p className="mt-1 text-sm text-yellow-800">{t('manual.pendingHint')}</p>
+          <ul className="mt-3 divide-y divide-yellow-200 text-sm">
+            {pendingPayments.map((p) => {
+              const m = ((p.metadata ?? {}) as { manual?: { method?: string; trxId?: string } }).manual;
+              return (
+                <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                  <span className="text-gray-800">
+                    {p.package.name} · {num.format(p.package.credits)} {t('credits')} · ৳{Number(p.amount).toLocaleString(locale)}
+                  </span>
+                  <span className="font-mono text-xs text-gray-600">
+                    {m?.method ? t(`manual.methods.${m.method as 'bkash' | 'nagad' | 'rocket'}`) : ''} · {m?.trxId}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 

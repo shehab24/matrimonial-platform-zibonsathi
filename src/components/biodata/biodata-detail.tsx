@@ -11,13 +11,12 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ToastAction } from '@/components/ui/toast';
 import { toast } from '@/hooks/use-toast';
 import { GenderAvatar } from '@/components/ui/gender-avatar';
 import { cn } from '@/lib/utils';
 import {
   User, MapPin, GraduationCap, Phone, Users, BookOpen, ArrowLeft, Ban, Heart, Share2, Briefcase,
-  CircleDot, CalendarDays, Cake, MessageCircle, Send, Loader2, Flag, Gem, HeartHandshake, AlertTriangle, Pencil, Quote,
+  CircleDot, CalendarDays, Cake, MessageCircle, Send, Loader2, Flag, Gem, HeartHandshake, AlertTriangle, Pencil, Quote, Coins,
 } from 'lucide-react';
 import { toggleFavorite, checkFavoriteStatus } from '@/actions/favorite';
 import { toggleIgnore, checkIgnoreStatus } from '@/actions/ignore';
@@ -90,6 +89,7 @@ export function BiodataDetail({ slug }: { slug: string }) {
   const pathname = usePathname();
   const { status: sessionStatus } = useSession();
   const loginHref = `/login?callbackUrl=${encodeURIComponent(pathname)}`;
+  const creditsHref = `/credits?from=${encodeURIComponent(pathname)}`;
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,6 +98,7 @@ export function BiodataDetail({ slug }: { slug: string }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isIgnored, setIsIgnored] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string | null>(null);
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<string>('');
@@ -135,7 +136,10 @@ export function BiodataDetail({ slug }: { slug: string }) {
         ]);
         if (favResult.success) setIsFavorite(favResult.isFavorite);
         if (ignResult.success) setIsIgnored(ignResult.isIgnored);
-        if (connResult.success) setConnectionStatus(connResult.status);
+        if (connResult.success) {
+          setConnectionStatus(connResult.status);
+          if ('creditBalance' in connResult) setCreditBalance(connResult.creditBalance ?? 0);
+        }
       }
     }
     checkStatuses();
@@ -175,25 +179,21 @@ export function BiodataDetail({ slug }: { slug: string }) {
     if (!profileId || requireLogin()) return;
     setActionLoading('connect');
     const result = await sendConnectionRequest(profileId);
+    if (!result.success && 'insufficientCredits' in result && result.insufficientCredits) {
+      // Balance ran out since the page loaded: go buy credits, with a way back here
+      router.push(creditsHref);
+      return;
+    }
     if (result.success) {
       setConnectionStatus('PENDING');
+      setCreditBalance((b) => (b === null ? b : Math.max(0, b - 1)));
       // The credit unlocks the contact right away; reload so the numbers appear
       const res = await fetch(`/api/profile/${encodeURIComponent(slug)}`).catch(() => null);
       const data = res?.ok ? await res.json() : null;
       if (data?.profile) setProfile(data.profile);
       toast({ variant: 'success', title: t('requestSentToast') });
     } else {
-      toast({
-        variant: 'destructive',
-        title: tc('error'),
-        description: result.error,
-        // Out of credits: point straight to where more can be bought
-        action: 'insufficientCredits' in result && result.insufficientCredits ? (
-          <ToastAction altText={t('getCredits')} onClick={() => router.push('/credits')}>
-            {t('getCredits')}
-          </ToastAction>
-        ) : undefined,
-      });
+      toast({ variant: 'destructive', title: tc('error'), description: result.error });
     }
     setActionLoading(null);
   };
@@ -381,6 +381,13 @@ export function BiodataDetail({ slug }: { slug: string }) {
         </Button>
       );
     }
+    if (creditBalance === 0) {
+      return (
+        <Link href={creditsHref} className={cn('block', className)}>
+          <Button className="w-full h-11 rounded-xl"><Coins className="h-4 w-4 mr-2" />{t('buyToViewContact')}</Button>
+        </Link>
+      );
+    }
     return (
       <Button onClick={handleConnect} disabled={actionLoading === 'connect'} className={cn('w-full h-11 rounded-xl', className)}>
         {actionLoading === 'connect' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
@@ -490,7 +497,7 @@ export function BiodataDetail({ slug }: { slug: string }) {
                   <p className="mx-auto max-w-md text-[14px] leading-relaxed text-gray-700">
                     {profile.freeContact
                       ? sessionStatus === 'unauthenticated' ? t('contactLoginRequired') : t('contactUnavailable')
-                      : connectionStatus === 'PENDING' ? t('contactPending') : t('contactLocked')}
+                      : connectionStatus === 'PENDING' ? t('contactPending') : creditBalance === 0 ? t('contactNoCredits') : t('contactLocked')}
                   </p>
                   <div className="mx-auto mt-4 max-w-xs">{connectButton()}</div>
                 </div>

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CreditCard } from 'lucide-react';
 import { listPayments } from '@/actions/payment';
 import { PaymentActions } from '@/components/admin/payment-actions';
+import { MANUAL_METHOD_LABELS, type ManualMethod } from '@/lib/manual-payment';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,8 +38,13 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
       </div>
 
       <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm leading-relaxed text-yellow-900">
-        CodePay থেকে স্বয়ংক্রিয় নিশ্চিতকরণ এখনো যুক্ত হয়নি। প্রতিটি পেন্ডিং পেমেন্ট CodePay ড্যাশবোর্ডে মিলিয়ে দেখুন (অর্ডার আইডি ও টাকার পরিমাণ),
-        তারপর &quot;নিশ্চিত করুন&quot; চাপুন। তখনই সদস্যের অ্যাকাউন্টে ক্রেডিট যোগ হবে।
+        <p>
+          <strong>CodePay:</strong> প্রতিটি পেন্ডিং পেমেন্ট CodePay ড্যাশবোর্ডে মিলিয়ে দেখুন (অর্ডার আইডি ও টাকার পরিমাণ)।
+        </p>
+        <p className="mt-1">
+          <strong>বিকাশ / নগদ / রকেট:</strong> আপনার অ্যাপে ট্রানজেকশন আইডি (TrxID), প্রেরকের নম্বর ও টাকার পরিমাণ মিলিয়ে দেখুন।
+        </p>
+        <p className="mt-1">মিললে &quot;নিশ্চিত করুন&quot; চাপুন, তখনই সদস্যের অ্যাকাউন্টে ক্রেডিট যোগ হবে। না মিললে ব্যর্থ করুন।</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -66,7 +72,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
                 <th className="px-4 py-3">সদস্য</th>
                 <th className="px-4 py-3">প্যাকেজ</th>
                 <th className="px-4 py-3 text-right">টাকা</th>
-                <th className="px-4 py-3">অর্ডার আইডি</th>
+                <th className="px-4 py-3">পেমেন্ট বিবরণ</th>
                 <th className="px-4 py-3">স্ট্যাটাস</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -75,6 +81,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
               {payments.map(p => {
                 const meta = (p.metadata ?? {}) as Record<string, unknown>;
                 const returned = meta.returnParams as Record<string, string> | undefined;
+                const manual = meta.manual as { method: ManualMethod; trxId: string; senderNumber: string; paidTo: string } | undefined;
                 return (
                   <tr key={p.id} className="align-top">
                     <td className="whitespace-nowrap px-4 py-3 text-gray-600">{bnDateTime(p.createdAt)}</td>
@@ -85,10 +92,32 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
                     <td className="px-4 py-3 text-gray-700">{p.package.name} · {bn(p.package.credits)} ক্রেডিট</td>
                     <td className="whitespace-nowrap px-4 py-3 text-right font-semibold">৳ {bn(p.amount)}</td>
                     <td className="px-4 py-3">
-                      <code className="text-xs text-gray-700">{p.id}</code>
+                      {manual ? (
+                        <div className="space-y-0.5 text-xs">
+                          <span className="inline-block rounded bg-pink-100 px-1.5 py-0.5 font-semibold text-pink-700">
+                            {MANUAL_METHOD_LABELS[manual.method] ?? manual.method}
+                          </span>
+                          <p>TrxID: <code className="font-bold text-gray-900">{manual.trxId}</code></p>
+                          <p className="text-gray-600">প্রেরক: <span className="font-mono">{manual.senderNumber}</span></p>
+                          <p className="text-gray-500">প্রাপক: <span className="font-mono">{manual.paidTo}</span></p>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="mb-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">CodePay</span>
+                          <br />
+                          <code className="text-xs text-gray-700">{p.id}</code>
+                        </>
+                      )}
                       {returned && (
                         <p className="mt-1 max-w-[260px] break-words text-xs text-gray-500">
                           ফেরত: {Object.entries(returned).map(([k, v]) => `${k}=${v}`).join(', ')}
+                        </p>
+                      )}
+                      {!!meta.failedReturn && (
+                        <p className="mt-1 max-w-[260px] break-words text-xs text-red-600">
+                          গেটওয়ে থেকে ব্যর্থ/বাতিল হয়ে ফিরেছে
+                          {Object.keys((meta.failedReturn as { params?: Record<string, string> }).params ?? {}).length > 0 &&
+                            `: ${Object.entries((meta.failedReturn as { params: Record<string, string> }).params).map(([k, v]) => `${k}=${v}`).join(', ')}`}
                         </p>
                       )}
                       {typeof meta.checkoutError === 'string' && (

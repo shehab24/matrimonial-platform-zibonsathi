@@ -278,19 +278,24 @@ export async function checkConnectionStatus(profileId: string) {
       return { success: true, status: null };
     }
 
-    const connection = await prisma.connection.findFirst({
-      where: {
-        OR: [
-          { senderId: session.user.id, receiverId: profile.userId },
-          { senderId: profile.userId, receiverId: session.user.id },
-        ],
-      },
-      select: { status: true },
-    });
+    const [connection, credit] = await Promise.all([
+      prisma.connection.findFirst({
+        where: {
+          OR: [
+            { senderId: session.user.id, receiverId: profile.userId },
+            { senderId: profile.userId, receiverId: session.user.id },
+          ],
+        },
+        select: { status: true },
+      }),
+      prisma.creditBalance.findUnique({ where: { userId: session.user.id }, select: { balance: true } }),
+    ]);
 
-    return { 
-      success: true, 
-      status: connection?.status || null 
+    return {
+      success: true,
+      status: connection?.status || null,
+      // Lets the biodata page send members without credits straight to the credits page
+      creditBalance: credit?.balance ?? 0,
     };
   } catch (error) {
     console.error('checkConnectionStatus error:', error);

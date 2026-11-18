@@ -4,6 +4,7 @@
     "description": "A safe Islamic marriage matchmaking platform"
   },
   "common": {
+    "close": "Close",
     "brand": "ZibonSathi",
     "loading": "Loading...",
     "error": "Error",
@@ -306,11 +307,36 @@
     "sendFailed": "Message could not be sent. Please try again."
   },
   "credits": {
+    "manual": {
+      "button": "Pay with bKash / Nagad",
+      "title": "{name} - manual payment",
+      "subtitle": "Send the money to the number below and submit the transaction ID. Credits are added once an admin verifies it.",
+      "methods": {
+        "bkash": "bKash",
+        "nagad": "Nagad",
+        "rocket": "Rocket"
+      },
+      "step1": "From your {method} app, \"Send Money\" {amount} to this number:",
+      "step2": "After sending, enter the transaction ID (TrxID) from the confirmation message and the number you sent from.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "senderLabel": "{method} number you sent from",
+      "trxLabel": "Transaction ID (TrxID)",
+      "trxHint": "You will find it in the SMS or your app history after paying.",
+      "submit": "Submit payment",
+      "doneTitle": "Payment submitted",
+      "doneBody": "Thank you! Credits will be added as soon as an admin verifies your payment, usually shortly.",
+      "pendingTitle": "Payments waiting for review",
+      "pendingHint": "An admin is checking these payments. Credits are added once verified."
+    },
+    "fromBiodata": "Viewing contact info costs 1 credit. Buy a package below, then go back to the biodata once your credits are added.",
+    "backToBiodata": "Back to biodata",
     "title": "Credits",
     "balance": "Current balance",
     "credits": "credits",
     "packages": "Credit packages",
     "noPackages": "No packages found.",
+    "noPackagesHint": "Credit packages will be added soon, please check back shortly.",
     "buy": "Buy",
     "history": "Credit history",
     "noTransactions": "No transactions yet.",
@@ -335,7 +361,9 @@
       "missingTitle": "Payment not found",
       "missingBody": "We couldn't find this payment. If money was deducted, please contact support.",
       "orderId": "Order ID: {id}",
-      "back": "Back to credits"
+      "back": "Back to credits",
+      "tryAgain": "Try again",
+      "support": "Contact support"
     }
   },
   "options": {
@@ -470,6 +498,8 @@
     "ignored": "Ignored",
     "ignore": "Ignore",
     "requestContact": "View contact info",
+    "buyToViewContact": "Buy credits to view contact",
+    "contactNoCredits": "Viewing contact info costs 1 credit. You have no credits yet, so buy some first.",
     "requestSent": "Request sent",
     "message": "Message",
     "basicInfo": "Basic info",
@@ -607,6 +637,9 @@
     "emailInvalid": "Enter a valid email address (e.g. example@gmail.com)",
     "paymentUnavailable": "Online payment isn't available right now. Please try later or contact support.",
     "paymentStartFailed": "Couldn't start the payment. Please try again in a moment.",
+    "trxIdInvalid": "Enter a valid transaction ID (TrxID): 6-20 English letters and digits.",
+    "trxIdUsed": "A payment with this transaction ID has already been submitted.",
+    "tooManyPendingPayments": "You already have several payments waiting for review. Please try again once they are checked.",
     "importedNoConnection": "This biodata's contact details are free. Submit your own biodata to see them, no request needed."
   },
   "notifications": {
