@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Settings, Save, Loader2, MessageCircle, BarChart3 } from 'lucide-react';
 import { CodePaySettings } from '@/components/admin/codepay-settings';
 import { ManualPaymentSettings } from '@/components/admin/manual-payment-settings';
+import { AiSettings } from '@/components/admin/ai-settings';
 
 export default function AdminSettingsPage() {
   const [whatsappNumber, setWhatsappNumber] = useState('');
@@ -149,6 +150,8 @@ export default function AdminSettingsPage() {
       <CodePaySettings settings={allSettings} />
 
       <ManualPaymentSettings settings={allSettings} />
+
+      <AiSettings settings={allSettings} />
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
         <div className="p-6 border-b border-gray-200">

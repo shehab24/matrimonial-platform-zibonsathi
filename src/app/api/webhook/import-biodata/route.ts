@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { Gender, MaritalStatus, ProfileStatus } from '@prisma/client';
-import { IMPORTED_EMAIL_DOMAIN } from '@/lib/imported-biodata';
+import { Gender, MaritalStatus } from '@prisma/client';
+import { createImportedBiodata } from '@/lib/import-biodata';
 
 // API key for n8n webhook authentication
 const API_KEY = process.env.BIODATA_IMPORT_API_KEY;
@@ -75,103 +74,41 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Create a placeholder user for this imported biodata
-    // Using a unique identifier based on timestamp + random
-    const uniqueId = `import_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const placeholderEmail = `${uniqueId}${IMPORTED_EMAIL_DOMAIN}`; // marks the biodata as imported (free contact)
-
-    // Create user and profile in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create placeholder user
-      const user = await tx.user.create({
-        data: {
-          email: placeholderEmail,
-          name: data.displayName || data.name || 'Imported Biodata',
-          emailVerified: null,
-          // Mark as imported
-        },
-      });
-
-      // Create profile
-      const profile = await tx.profile.create({
-        data: {
-          userId: user.id,
-          status: ProfileStatus.PENDING_APPROVAL,
-          
-          // Basic
-          displayName: data.displayName || data.name || null,
-          dateOfBirth: parseDate(data.dateOfBirth || data.dob),
-          gender: gender,
-          religion: data.religion || 'ইসলাম',
-          sect: data.sect || null,
-
-          // Location
-          country: data.country || 'বাংলাদেশ',
-          division: data.division || null,
-          district: data.district || null,
-          upazila: data.upazila || data.area || null,
-
-          // Education & Occupation
-          education: data.education || null,
-          educationDetails: data.educationDetails || data.educationDetail || null,
-          occupation: data.occupation || data.job || null,
-          occupationDetails: data.occupationDetails || data.occupationDetail || null,
-          monthlyIncome: data.monthlyIncome || data.income || null,
-
-          // Marital & Family
-          maritalStatus: parseMaritalStatus(data.maritalStatus),
-          numberOfChildren: parseInteger(data.numberOfChildren || data.children),
-          fatherAlive: parseBoolean(data.fatherAlive || data.father),
-          motherAlive: parseBoolean(data.motherAlive || data.mother),
-          siblings: parseInteger(data.siblings || data.brothersSisters),
-          familyType: data.familyType || null,
-          familyStatus: data.familyStatus || data.familyCondition || null,
-
-          // Religious
-          prayerHabit: data.prayerHabit || data.prayer || null,
-          beardOrHijab: data.beardOrHijab || data.beard || data.hijab || null,
-          mazhab: data.mazhab || data.madhab || null,
-
-          // About & Preferences
-          aboutMe: data.aboutMe || data.about || data.bio || null,
-          partnerPreferences: data.partnerPreferences || data.lookingFor || data.preference || null,
-
-          // Contact
-          phoneNumber: data.phoneNumber || data.phone || data.mobile || null,
-          guardianPhone: data.guardianPhone || data.guardianMobile || null,
-          contactEmail: (() => {
-            const raw = data.contactEmail || data.email || data.emailAddress || data.personalEmail || data.mail || data.contact_email;
-            return typeof raw === 'string' && raw.includes('@') ? raw.trim().toLowerCase() : null;
-          })(),
-
-          // Admin note
-          adminNote: `Imported via API on ${new Date().toISOString()}. Source: ${data.source || 'n8n/telegram'}`,
-        },
-      });
-
-      // Generate biodata ID inline (can't use assignBiodataId inside transaction)
-      const prefix = gender === 'MALE' ? 'ZBM' : 'ZBF';
-      const lastProfile = await tx.profile.findFirst({
-        where: { oderId: { startsWith: prefix } },
-        orderBy: { oderId: 'desc' },
-        select: { oderId: true },
-      });
-      
-      let nextNumber = 1;
-      if (lastProfile?.oderId) {
-        const match = lastProfile.oderId.match(/\d+$/);
-        if (match) nextNumber = parseInt(match[0], 10) + 1;
-      }
-      const biodataId = `${prefix}-${nextNumber.toString().padStart(5, '0')}`;
-      
-      // Update profile with biodata ID
-      await tx.profile.update({
-        where: { id: profile.id },
-        data: { oderId: biodataId },
-      });
-
-      return { user, profile, biodataId };
-    });
+    const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+    const result = await createImportedBiodata(
+      {
+        displayName: text(data.displayName || data.name),
+        dateOfBirth: parseDate(data.dateOfBirth || data.dob),
+        gender,
+        religion: text(data.religion),
+        sect: text(data.sect),
+        country: text(data.country),
+        division: text(data.division),
+        district: text(data.district),
+        upazila: text(data.upazila || data.area),
+        education: text(data.education),
+        educationDetails: text(data.educationDetails || data.educationDetail),
+        occupation: text(data.occupation || data.job),
+        occupationDetails: text(data.occupationDetails || data.occupationDetail),
+        monthlyIncome: text(data.monthlyIncome || data.income),
+        maritalStatus: parseMaritalStatus(data.maritalStatus),
+        numberOfChildren: parseInteger(data.numberOfChildren || data.children),
+        fatherAlive: parseBoolean(data.fatherAlive || data.father),
+        motherAlive: parseBoolean(data.motherAlive || data.mother),
+        siblings: parseInteger(data.siblings || data.brothersSisters),
+        familyType: text(data.familyType),
+        familyStatus: text(data.familyStatus || data.familyCondition),
+        prayerHabit: text(data.prayerHabit || data.prayer),
+        beardOrHijab: text(data.beardOrHijab || data.beard || data.hijab),
+        mazhab: text(data.mazhab || data.madhab),
+        aboutMe: text(data.aboutMe || data.about || data.bio),
+        partnerPreferences: text(data.partnerPreferences || data.lookingFor || data.preference),
+        phoneNumber: text(data.phoneNumber || data.phone || data.mobile),
+        guardianPhone: text(data.guardianPhone || data.guardianMobile),
+        contactEmail: text(data.contactEmail || data.email || data.emailAddress || data.personalEmail || data.mail || data.contact_email),
+      },
+      data.source || 'n8n/telegram'
+    );
 
     return NextResponse.json({
       success: true,

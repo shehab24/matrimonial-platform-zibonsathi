@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 // Settings anyone may read by key; everything else is admin-only
 const PUBLIC_KEYS = ['whatsapp_number'];
 // Never sent back to the browser once saved, not even to admins; reads report only whether one is set
-const SECRET_KEYS = ['codepay_api_secret'];
+const SECRET_KEYS = ['codepay_api_secret', 'anthropic_api_key', 'gemini_api_key'];
 
 // GET - fetch settings (public for whatsapp number)
 export async function GET(request: Request) {

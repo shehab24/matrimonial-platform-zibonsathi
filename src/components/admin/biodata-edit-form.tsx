@@ -10,7 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
-import { DIVISIONS, EDUCATION_OPTIONS, OCCUPATION_OPTIONS, MAZHAB_OPTIONS, FAMILY_STATUS_OPTIONS } from '@/lib/constants';
+import {
+  DIVISIONS, EDUCATION_OPTIONS, OCCUPATION_OPTIONS, MAZHAB_OPTIONS, FAMILY_STATUS_OPTIONS,
+  INCOME_OPTIONS, FAMILY_TYPE_OPTIONS, PRAYER_OPTIONS, BEARD_HIJAB_OPTIONS,
+} from '@/lib/constants';
 import { GENDER_LABELS, MARITAL_LABELS } from '@/lib/admin-labels';
 
 type Fields = Record<
@@ -22,10 +25,6 @@ type Fields = Record<
 >;
 
 // Same choices as the member form (src/app/(dashboard)/profile/page.tsx)
-const INCOME_OPTIONS = ['১০,০০০ এর কম', '১০,০০০-২০,০০০', '২০,০০০-৪০,০০০', '৪০,০০০-৬০,০০০', '৬০,০০০-১,০০,০০০', '১,০০,০০০ এর বেশি'];
-const FAMILY_TYPE_OPTIONS = ['একক পরিবার', 'যৌথ পরিবার'];
-const PRAYER_OPTIONS = ['পাঁচ ওয়াক্ত নামাজ পড়ি', 'মাঝে মাঝে পড়ি', 'জুমার নামাজ পড়ি', 'চেষ্টা করছি'];
-const BEARD_HIJAB_OPTIONS = ['হ্যাঁ, সম্পূর্ণরূপে', 'হ্যাঁ, আংশিকভাবে', 'না', 'চেষ্টা করছি'];
 
 const selectClass =
   'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700 disabled:cursor-not-allowed disabled:bg-gray-100';

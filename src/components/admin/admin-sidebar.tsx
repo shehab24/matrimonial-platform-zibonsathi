@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { LayoutDashboard, ClipboardCheck, FileText, Users, Flag, Package, LogOut, ShieldCheck, Settings, CreditCard, UserCog } from 'lucide-react';
+import { LayoutDashboard, ClipboardCheck, FileText, Users, Flag, Package, LogOut, ShieldCheck, Settings, CreditCard, UserCog, FileInput } from 'lucide-react';
 
 export function AdminSidebar({ email, pendingCount, openReports }: { email: string; pendingCount: number; openReports: number }) {
   const pathname = usePathname();
@@ -13,6 +13,7 @@ export function AdminSidebar({ email, pendingCount, openReports }: { email: stri
     { href: '/admin/dashboard', label: 'ড্যাশবোর্ড', icon: LayoutDashboard },
     { href: '/admin/biodatas?status=PENDING_APPROVAL', match: 'review', label: 'রিভিউয়ের অপেক্ষায়', icon: ClipboardCheck, count: pendingCount },
     { href: '/admin/biodatas', label: 'সকল বায়োডাটা', icon: FileText },
+    { href: '/admin/import', label: 'বায়োডাটা ইমপোর্ট', icon: FileInput },
     { href: '/admin/users', label: 'ব্যবহারকারী', icon: Users },
     { href: '/admin/reports', label: 'রিপোর্ট', icon: Flag, count: openReports },
     { href: '/admin/packages', label: 'ক্রেডিট প্যাকেজ', icon: Package },

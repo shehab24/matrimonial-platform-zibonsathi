@@ -18,3 +18,9 @@ export const OCCUPATION_OPTIONS = ['চাকরি', 'ব্যবসা', 'শ
 export const MAZHAB_OPTIONS = ['হানাফি', 'মালিকি', 'শাফেয়ী', 'হাম্বলি', 'আহলে হাদিস'] as const;
 export const FAMILY_STATUS_OPTIONS = ['উচ্চবিত্ত', 'মধ্যবিত্ত', 'নিম্নমধ্যবিত্ত'] as const;
 export const MARITAL_STATUSES = ['NEVER_MARRIED', 'DIVORCED', 'WIDOWED'] as const;
+
+// Dropdown values in the biodata forms (stored verbatim, so imports must use exactly these)
+export const INCOME_OPTIONS = ['১০,০০০ এর কম', '১০,০০০-২০,০০০', '২০,০০০-৪০,০০০', '৪০,০০০-৬০,০০০', '৬০,০০০-১,০০,০০০', '১,০০,০০০ এর বেশি'] as const;
+export const FAMILY_TYPE_OPTIONS = ['একক পরিবার', 'যৌথ পরিবার'] as const;
+export const PRAYER_OPTIONS = ['পাঁচ ওয়াক্ত নামাজ পড়ি', 'মাঝে মাঝে পড়ি', 'জুমার নামাজ পড়ি', 'চেষ্টা করছি'] as const;
+export const BEARD_HIJAB_OPTIONS = ['হ্যাঁ, সম্পূর্ণরূপে', 'হ্যাঁ, আংশিকভাবে', 'না', 'চেষ্টা করছি'] as const;
