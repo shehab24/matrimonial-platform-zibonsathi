@@ -64,7 +64,7 @@ export function BiodataListCard({ profile }: { profile: BrowseProfile }) {
   const marital =
     profile.maritalStatus === 'WIDOWED' ? t(female ? 'widow' : 'widower')
     : profile.maritalStatus ? tm(profile.maritalStatus) : null;
-  // Always the same five lines, so every card has the same shape; missing facts show a dash
+  // Always the same five lines, so every card has the same shape; missing facts say so
   const rows = [
     { icon: CalendarDays, text: age === null ? null : tc('years', { age }) },
     {
@@ -136,7 +136,7 @@ export function BiodataListCard({ profile }: { profile: BrowseProfile }) {
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-50 text-green-700">
                 <Icon className="h-3.5 w-3.5" />
               </span>
-              <span className={cn('min-w-0 flex-1 truncate', !text && 'text-gray-300')}>{text ?? '—'}</span>
+              <span className={cn('min-w-0 flex-1 truncate', !text && 'text-gray-400')}>{text ?? t('notMentioned')}</span>
               {i === rows.length - 1 && viewButton}
             </li>
           ))}

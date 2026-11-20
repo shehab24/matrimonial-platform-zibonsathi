@@ -267,7 +267,8 @@
     "removeFavorite": "পছন্দের তালিকা থেকে সরান",
     "height": "{feet} ফুট {inches} ইঞ্চি",
     "widow": "বিধবা",
-    "widower": "বিপত্নীক"
+    "widower": "বিপত্নীক",
+    "notMentioned": "উল্লেখ নেই"
   },
   "favorites": {
     "title": "পছন্দ ও তালিকা",

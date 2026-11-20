@@ -267,7 +267,8 @@
     "removeFavorite": "Remove from favorites",
     "height": "{feet} ft {inches} in",
     "widow": "Widow",
-    "widower": "Widower"
+    "widower": "Widower",
+    "notMentioned": "Not mentioned"
   },
   "favorites": {
     "title": "Favorites & Lists",
