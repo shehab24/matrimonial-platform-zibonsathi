@@ -135,8 +135,10 @@ export async function browseProfiles(filters: BrowseFilters = {}) {
         id: true,
         userId: true,
         oderId: true,
-        displayName: true,
         dateOfBirth: true,
+        heightInches: true,
+        skinTone: true,
+        upazila: true,
         gender: true,
         division: true,
         district: true,
@@ -153,7 +155,7 @@ export async function browseProfiles(filters: BrowseFilters = {}) {
           take: 1,
           select: { url: true },
         },
-        // NEVER include phoneNumber, guardianPhone or contactEmail
+        // NEVER include displayName, phoneNumber, guardianPhone or contactEmail (unlocked on the biodata page)
       },
     }),
     prisma.profile.count({ where }),

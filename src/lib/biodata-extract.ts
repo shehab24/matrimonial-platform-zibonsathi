@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from './prisma';
 import {
   DIVISIONS, EDUCATION_OPTIONS, OCCUPATION_OPTIONS, MAZHAB_OPTIONS, FAMILY_STATUS_OPTIONS,
-  INCOME_OPTIONS, FAMILY_TYPE_OPTIONS, PRAYER_OPTIONS, BEARD_HIJAB_OPTIONS,
+  INCOME_OPTIONS, FAMILY_TYPE_OPTIONS, PRAYER_OPTIONS, BEARD_HIJAB_OPTIONS, SKIN_TONE_OPTIONS,
 } from './constants';
 
 // Same fields and dropdown values as the biodata form, so an import looks like a hand-filled biodata
@@ -14,6 +14,9 @@ export const extractedBiodataSchema = z.object({
   dateOfBirth: z.string().nullable(),
   gender: opt(['MALE', 'FEMALE'] as const),
   sect: z.string().nullable(),
+  heightInches: z.number().int().nullable(),
+  weightKg: z.number().int().nullable(),
+  skinTone: opt(SKIN_TONE_OPTIONS),
   country: z.string().nullable(),
   division: opt(DIVISIONS),
   district: z.string().nullable(),
@@ -54,6 +57,9 @@ Fields:
 - dateOfBirth: "YYYY-MM-DD". If only month and year are given use the 1st of the month; if only an age is given, use January 1 of (current year - age) and add a warning saying the date was estimated from the age.
 - gender: MALE for পাত্র/groom/ছেলে, FEMALE for পাত্রী/bride/মেয়ে. Infer it from context (e.g. hijab vs beard, "পাত্রের বায়োডাটা") when it isn't stated outright. null only if it truly can't be told.
 - sect: e.g. সুন্নি, only if stated.
+- heightInches: height converted to TOTAL inches as an integer (৫ ফুট ৭ ইঞ্চি / 5'7" = 67; 170 cm = 67). null if not stated.
+- weightKg: weight in kilograms as an integer (৬০ কেজি = 60; convert pounds). null if not stated.
+- skinTone: complexion (গাত্রবর্ণ / গায়ের রং), one of ${list(SKIN_TONE_OPTIONS)}. "উজ্জ্বল ফর্সা" = very fair, "ফর্সা" = fair, "উজ্জ্বল শ্যামলা" = light wheatish, "শ্যামলা" = wheatish/brown, "কালো" = dark.
 - country: "বাংলাদেশ" for Bangladesh; otherwise the country name in Bangla. If the person lives abroad but is from Bangladesh, use the country of their permanent address.
 - division: one of ${list(DIVISIONS)}. Infer it from the district when only the district is given.
 - district / upazila: the permanent address (স্থায়ী ঠিকানা) district and upazila/thana, in Bangla spelling. If only a present address is given, use that. Put the other address (present or village/house details) in aboutMe.
@@ -65,7 +71,7 @@ Fields:
 - siblings: the total number of brothers and sisters, not counting the candidate. Put their details (e.g. "২ ভাই ১ বোন, বড় ভাই বিবাহিত") in aboutMe.
 - familyType: one of ${list(FAMILY_TYPE_OPTIONS)}. familyStatus: one of ${list(FAMILY_STATUS_OPTIONS)} (e.g. "নিম্নবিত্ত" maps to "নিম্নমধ্যবিত্ত").
 - prayerHabit: one of ${list(PRAYER_OPTIONS)}. beardOrHijab: one of ${list(BEARD_HIJAB_OPTIONS)} (full sunnati beard / niqab = "হ্যাঁ, সম্পূর্ণরূপে"; trimmed beard / hijab without niqab = "হ্যাঁ, আংশিকভাবে"). mazhab: one of ${list(MAZHAB_OPTIONS)}.
-- aboutMe: a well-organised Bangla text with one "লেবেল: মান" line per fact that has no field of its own, for example height, weight, complexion, blood group, father's and mother's occupation, sibling details, present address, guardian's name and relation, Quran recitation, mahram adherence, deeni activity, hobbies, health, and any self-description. Keep the person's own wording for descriptions. null if there is nothing to put here.
+- aboutMe: a well-organised Bangla text with one "লেবেল: মান" line per fact that has no field of its own, for example blood group, father's and mother's occupation, sibling details, present address, guardian's name and relation, Quran recitation, mahram adherence, deeni activity, hobbies, health, and any self-description. Keep the person's own wording for descriptions. null if there is nothing to put here.
 - partnerPreferences: everything the person wants in a spouse (age, height, education, complexion, location, deeni requirements, other conditions), as readable Bangla lines.
 - phoneNumber: the candidate's own mobile, guardianPhone: the guardian's mobile (if only one number is given and it is labelled as the guardian's or family's, it goes in guardianPhone). Write the digits as ASCII (convert Bangla digits), e.g. "01712345678".
 - contactEmail: an email address if one is given.

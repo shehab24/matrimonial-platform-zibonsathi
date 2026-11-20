@@ -7,6 +7,7 @@ import { BiodataReviewActions } from '@/components/admin/biodata-review-actions'
 import { DeleteBiodataButton } from '@/components/admin/delete-biodata-button';
 import { GENDER_LABELS, MARITAL_LABELS, STATUS_LABELS, STATUS_STYLES, bnDate, bnNumber } from '@/lib/admin-labels';
 import { biodataHref } from '@/lib/biodata-url';
+import { formatHeight } from '@/lib/constants';
 
 const yesNo = (v: boolean | null) => (v === null ? null : v ? 'জীবিত' : 'মৃত');
 
@@ -92,6 +93,9 @@ export default async function AdminBiodataDetailPage({ params }: { params: Promi
             ['জন্মতারিখ', p.dateOfBirth ? `${bnDate(p.dateOfBirth)} (${bnNumber(age!)} বছর)` : null],
             ['বৈবাহিক অবস্থা', p.maritalStatus ? MARITAL_LABELS[p.maritalStatus] : null],
             ['সন্তান সংখ্যা', p.numberOfChildren !== null ? bnNumber(p.numberOfChildren) : null],
+            ['উচ্চতা', p.heightInches ? formatHeight(p.heightInches, bnNumber) : null],
+            ['ওজন', p.weightKg ? `${bnNumber(p.weightKg)} কেজি` : null],
+            ['গাত্রবর্ণ', p.skinTone],
             ['ঠিকানা', [p.upazila, p.district, p.division, p.country].filter(Boolean).join(', ') || null],
           ]} />
           <Section title="শিক্ষা ও পেশা" rows={[

@@ -16,13 +16,13 @@ import { GenderAvatar } from '@/components/ui/gender-avatar';
 import { cn } from '@/lib/utils';
 import {
   User, MapPin, GraduationCap, Phone, Users, BookOpen, ArrowLeft, Ban, Heart, Share2, Briefcase,
-  CircleDot, CalendarDays, Cake, MessageCircle, Send, Loader2, Flag, Gem, HeartHandshake, AlertTriangle, Pencil, Quote, Coins,
+  CircleDot, CalendarDays, Cake, Ruler, Weight, Palette, MessageCircle, Send, Loader2, Flag, Gem, HeartHandshake, AlertTriangle, Pencil, Quote, Coins,
 } from 'lucide-react';
 import { toggleFavorite, checkFavoriteStatus } from '@/actions/favorite';
 import { toggleIgnore, checkIgnoreStatus } from '@/actions/ignore';
 import { sendConnectionRequest, checkConnectionStatus } from '@/actions/connection';
 import { reportProfile } from '@/actions/report';
-import { REPORT_REASONS } from '@/lib/constants';
+import { REPORT_REASONS, formatHeight } from '@/lib/constants';
 
 interface ProfileData {
   id: string;
@@ -32,6 +32,9 @@ interface ProfileData {
   gender: string | null;
   religion: string | null;
   sect: string | null;
+  heightInches: number | null;
+  weightKg: number | null;
+  skinTone: string | null;
   country: string | null;
   division: string | null;
   district: string | null;
@@ -259,6 +262,8 @@ export function BiodataDetail({ slug }: { slug: string }) {
   const primaryPhoto = profile.photos.find(p => p.isPrimary) || profile.photos[0];
   const division = profile.division && td.has(profile.division) ? td(profile.division) : profile.division;
   const aliveLabel = (v: boolean | null) => (v === true ? t('alive') : v === false ? t('deceased') : null);
+  const height = profile.heightInches ? formatHeight(profile.heightInches, (n) => format.number(n)) : null;
+  const weight = profile.weightKg ? t('kg', { weight: profile.weightKg }) : null;
   const longText = (text: string | null) => text && <span className="whitespace-pre-wrap leading-relaxed">{text}</span>;
 
   const facts: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | null }[] = [
@@ -269,6 +274,9 @@ export function BiodataDetail({ slug }: { slug: string }) {
       label: t('birthYear'),
       value: profile.dateOfBirth ? format.dateTime(new Date(profile.dateOfBirth), { month: 'long', year: 'numeric' }) : null,
     },
+    { icon: Ruler, label: t('height'), value: height },
+    { icon: Weight, label: t('weight'), value: weight },
+    { icon: Palette, label: t('skinTone'), value: opt(profile.skinTone) },
     { icon: MapPin, label: t('address'), value: [profile.district, division].filter(Boolean).join(', ') || null },
     { icon: Briefcase, label: t('occupation'), value: opt(profile.occupation) },
     { icon: BookOpen, label: t('mazhab'), value: opt(profile.mazhab) },
@@ -309,6 +317,9 @@ export function BiodataDetail({ slug }: { slug: string }) {
       title: t('personalInfo'),
       rows: [
         { label: t('gender'), value: profile.gender ? genderLabel(profile.gender) : null },
+        { label: t('height'), value: height },
+        { label: t('weight'), value: weight },
+        { label: t('skinTone'), value: opt(profile.skinTone) },
         { label: t('religion'), value: opt(profile.religion) },
         { label: t('sect'), value: opt(profile.sect) },
         { label: t('mazhab'), value: opt(profile.mazhab) },

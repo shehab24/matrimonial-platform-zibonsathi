@@ -4,8 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useTranslations } from 'next-intl';
-import { ArrowRight, CalendarDays, MapPin, CircleDot, GraduationCap, Briefcase, Heart } from 'lucide-react';
+import { useFormatter, useTranslations } from 'next-intl';
+import { ArrowRight, CalendarDays, Ruler, MapPin, CircleDot, Palette, Briefcase, Heart } from 'lucide-react';
 import { toggleFavorite } from '@/actions/favorite';
 import { toast } from '@/hooks/use-toast';
 import { GenderAvatar } from '@/components/ui/gender-avatar';
@@ -16,6 +16,9 @@ export interface BrowseProfile {
   id: string;
   oderId: string | null;
   dateOfBirth: string | null;
+  heightInches: number | null;
+  skinTone: string | null;
+  upazila: string | null;
   gender: string | null;
   division: string | null;
   district: string | null;
@@ -39,6 +42,7 @@ export function BiodataListCard({ profile }: { profile: BrowseProfile }) {
   const td = useTranslations('divisions');
   const to = useTranslations('options');
   const opt = (value: string) => (to.has(value) ? to(value) : value);
+  const format = useFormatter();
   const router = useRouter();
   const { status: sessionStatus } = useSession();
   const [isFavorite, setIsFavorite] = useState(profile.isFavorite);
@@ -46,17 +50,33 @@ export function BiodataListCard({ profile }: { profile: BrowseProfile }) {
   const href = biodataHref(profile);
 
   const age = calcAge(profile.dateOfBirth);
+  const female = profile.gender === 'FEMALE';
+  const location =
+    [profile.upazila, profile.district].filter(Boolean).join(', ') ||
+    [profile.district, profile.division && (td.has(profile.division) ? td(profile.division) : profile.division)]
+      .filter(Boolean).join(', ') || null;
+  // Complexion for brides, occupation for grooms; either falls back to the other
+  const skin = profile.skinTone ? opt(profile.skinTone) : null;
+  const occupation = profile.occupation ? opt(profile.occupation) : null;
+  const fourth = female
+    ? { icon: skin || !occupation ? Palette : Briefcase, text: skin ?? occupation }
+    : { icon: occupation || !skin ? Briefcase : Palette, text: occupation ?? skin };
+  const marital =
+    profile.maritalStatus === 'WIDOWED' ? t(female ? 'widow' : 'widower')
+    : profile.maritalStatus ? tm(profile.maritalStatus) : null;
+  // Always the same five lines, so every card has the same shape; missing facts show a dash
   const rows = [
     { icon: CalendarDays, text: age === null ? null : tc('years', { age }) },
     {
-      icon: MapPin,
-      text: [profile.district, profile.division && (td.has(profile.division) ? td(profile.division) : profile.division)]
-        .filter(Boolean).join(', ') || null,
+      icon: Ruler,
+      text: profile.heightInches
+        ? t('height', { feet: format.number(Math.floor(profile.heightInches / 12)), inches: format.number(profile.heightInches % 12) })
+        : null,
     },
-    { icon: CircleDot, text: profile.maritalStatus ? tm(profile.maritalStatus) : null },
-    { icon: GraduationCap, text: profile.education ? opt(profile.education) : null },
-    { icon: Briefcase, text: profile.occupation ? opt(profile.occupation) : null },
-  ].filter(r => r.text);
+    { icon: MapPin, text: location },
+    fourth,
+    { icon: CircleDot, text: marital },
+  ];
 
   const onFavorite = async () => {
     if (sessionStatus !== 'authenticated') {
@@ -72,6 +92,16 @@ export function BiodataListCard({ profile }: { profile: BrowseProfile }) {
     }
     setSaving(false);
   };
+
+  const viewButton = (
+    <Link
+      href={href}
+      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-50 px-3.5 py-1.5 text-[13px] font-bold text-green-800 transition-colors group-hover:bg-green-700 group-hover:text-white"
+    >
+      {t('viewBiodata')}
+      <ArrowRight className="h-3.5 w-3.5" />
+    </Link>
+  );
 
   return (
     <div className="group relative flex overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm shadow-gray-900/5 transition-all hover:-translate-y-0.5 hover:border-green-200 hover:shadow-lg hover:shadow-green-900/10">
@@ -100,26 +130,17 @@ export function BiodataListCard({ profile }: { profile: BrowseProfile }) {
           <Heart className={cn('h-[18px] w-[18px]', isFavorite && 'fill-red-500 text-red-500')} />
         </button>
 
-        <ul className="space-y-2 pr-7">
+        <ul className="space-y-2">
           {rows.map(({ icon: Icon, text }, i) => (
-            <li key={i} className="flex items-center gap-2.5 text-[14px] text-gray-800">
+            <li key={i} className={cn('flex items-center gap-2.5 text-[14px] text-gray-800', i < rows.length - 1 && 'pr-7')}>
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-50 text-green-700">
                 <Icon className="h-3.5 w-3.5" />
               </span>
-              <span className="truncate">{text}</span>
+              <span className={cn('min-w-0 flex-1 truncate', !text && 'text-gray-300')}>{text ?? '—'}</span>
+              {i === rows.length - 1 && viewButton}
             </li>
           ))}
         </ul>
-
-        <div className="mt-auto flex justify-end pt-3">
-          <Link
-            href={href}
-            className="inline-flex items-center gap-1 rounded-full bg-green-50 px-3.5 py-1.5 text-[13px] font-bold text-green-800 transition-colors group-hover:bg-green-700 group-hover:text-white"
-          >
-            {t('viewBiodata')}
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
       </div>
     </div>
   );

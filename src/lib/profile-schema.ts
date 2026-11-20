@@ -1,11 +1,11 @@
 import { z } from 'zod';
+import { HEIGHT_MIN_INCHES, HEIGHT_MAX_INCHES, WEIGHT_MIN_KG, WEIGHT_MAX_KG } from '@/lib/constants';
 
 // Empty inputs arrive as '' (text) or NaN (cleared number fields) - store them as null
 const optText = z.preprocess((v) => (v === '' ? null : v), z.string().trim().max(5000).nullish());
-const optInt = z.preprocess(
-  (v) => (v === '' || v === null || (typeof v === 'number' && Number.isNaN(v)) ? null : Number(v)),
-  z.number().int().min(0).max(50).nullish()
-);
+const toNum = (v: unknown) => (v === '' || v === null || (typeof v === 'number' && Number.isNaN(v)) ? null : Number(v));
+const intIn = (min: number, max: number) => z.preprocess(toNum, z.number().int().min(min).max(max).nullish());
+const optInt = intIn(0, 50);
 
 // Only the fields a member may edit. Anything else the client sends (status, oderId,
 // approvedAt, photos, adminNote...) is stripped, so it can't be written through this action
@@ -33,6 +33,9 @@ export const profileInputSchema = z.object({
   beardOrHijab: optText,
   mazhab: optText,
   sect: optText,
+  heightInches: intIn(HEIGHT_MIN_INCHES, HEIGHT_MAX_INCHES),
+  weightKg: intIn(WEIGHT_MIN_KG, WEIGHT_MAX_KG),
+  skinTone: optText,
   aboutMe: optText,
   partnerPreferences: optText,
   phoneNumber: optText,

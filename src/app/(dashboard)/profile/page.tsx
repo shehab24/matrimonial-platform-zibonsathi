@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { DIVISIONS, EDUCATION_OPTIONS, OCCUPATION_OPTIONS } from '@/lib/constants';
+import {
+  DIVISIONS, EDUCATION_OPTIONS, OCCUPATION_OPTIONS, SKIN_TONE_OPTIONS, HEIGHT_INCHES, WEIGHT_MIN_KG, WEIGHT_MAX_KG, formatHeight,
+} from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -148,6 +150,24 @@ export default function ProfilePage() {
                     <option value="">{t('select')}</option>
                     <option value="MALE">{tc('male')}</option>
                     <option value="FEMALE">{tc('female')}</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('height')}</Label>
+                  <select className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700" value={profile.heightInches == null ? '' : String(profile.heightInches)} onChange={e => handleChange('heightInches', e.target.value === '' ? null : Number(e.target.value))}>
+                    <option value="">{t('select')}</option>
+                    {HEIGHT_INCHES.map(h => <option key={h} value={h}>{formatHeight(h, n => format.number(n))}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('weightKg')}</Label>
+                  <Input type="number" min={WEIGHT_MIN_KG} max={WEIGHT_MAX_KG} value={profile.weightKg == null ? '' : String(profile.weightKg)} onChange={e => handleChange('weightKg', e.target.value === '' ? null : Number(e.target.value))} placeholder={t('weightPlaceholder')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('skinTone')}</Label>
+                  <select className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700" value={(profile.skinTone as string) || ''} onChange={e => handleChange('skinTone', e.target.value)}>
+                    <option value="">{t('select')}</option>
+                    {SKIN_TONE_OPTIONS.map(s => <option key={s} value={s}>{to(s)}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">

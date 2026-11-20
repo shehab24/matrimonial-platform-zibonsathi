@@ -264,7 +264,10 @@
     "yearUnit": "yrs",
     "viewBiodata": "Biodata",
     "addFavorite": "Add to favorites",
-    "removeFavorite": "Remove from favorites"
+    "removeFavorite": "Remove from favorites",
+    "height": "{feet} ft {inches} in",
+    "widow": "Widow",
+    "widower": "Widower"
   },
   "favorites": {
     "title": "Favorites & Lists",
@@ -412,7 +415,12 @@
     "আহলে হাদিস": "Ahl al-Hadith",
     "সুন্নি": "Sunni",
     "ইসলাম": "Islam",
-    "বাংলাদেশ": "Bangladesh"
+    "বাংলাদেশ": "Bangladesh",
+    "উজ্জ্বল ফর্সা": "Very fair",
+    "ফর্সা": "Fair",
+    "উজ্জ্বল শ্যামলা": "Wheatish",
+    "শ্যামলা": "Wheatish brown",
+    "কালো": "Dark"
   },
   "profileForm": {
     "steps": {
@@ -475,7 +483,11 @@
     "removalTitle": "Responsibility to remove your biodata",
     "removalBody": "If you get married elsewhere, it is your responsibility to remove your biodata from here. Otherwise, if others spend money and time on your biodata, you will have to answer to Allah for it.",
     "removalAgree": "I accept this responsibility and will remove my biodata if I get married elsewhere, in sha Allah.",
-    "pledgeRequired": "To submit for approval, choose a hadia amount and tick the responsibility pledge."
+    "pledgeRequired": "To submit for approval, choose a hadia amount and tick the responsibility pledge.",
+    "height": "Height",
+    "weightKg": "Weight (kg)",
+    "skinTone": "Complexion",
+    "weightPlaceholder": "e.g. 60"
   },
   "profileStatus": {
     "DRAFT": "Draft",
@@ -590,7 +602,11 @@
     "verseBody": "And among His signs is that He created for you spouses from among yourselves, so that you may find tranquility in them.",
     "verseRef": "— Surah Ar-Rum : 21",
     "contactLoginRequired": "This biodata's contact details are free. Log in and submit your own biodata to see them.",
-    "contactUnavailable": "No contact details have been added to this biodata."
+    "contactUnavailable": "No contact details have been added to this biodata.",
+    "height": "Height",
+    "weight": "Weight",
+    "skinTone": "Complexion",
+    "kg": "{weight} kg"
   },
   "errors": {
     "emailTaken": "An account with this email already exists",

@@ -7,8 +7,10 @@ import { extractBiodataFromText, importExtractedBiodata } from '@/actions/biodat
 import type { ExtractedBiodata } from '@/lib/biodata-extract';
 import {
   DIVISIONS, EDUCATION_OPTIONS, OCCUPATION_OPTIONS, MAZHAB_OPTIONS, FAMILY_STATUS_OPTIONS,
-  INCOME_OPTIONS, FAMILY_TYPE_OPTIONS, PRAYER_OPTIONS, BEARD_HIJAB_OPTIONS,
+  INCOME_OPTIONS, FAMILY_TYPE_OPTIONS, PRAYER_OPTIONS, BEARD_HIJAB_OPTIONS, SKIN_TONE_OPTIONS,
+  HEIGHT_INCHES, formatHeight,
 } from '@/lib/constants';
+import { bnNumber } from '@/lib/admin-labels';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 
@@ -17,6 +19,9 @@ type Options = readonly string[] | Record<string, string>;
 type Kind = 'text' | 'long' | 'date' | 'int' | 'bool' | Options;
 
 const BOOL: Record<string, string> = { true: 'জীবিত', false: 'মৃত' };
+const HEIGHTS: Record<string, string> = Object.fromEntries(HEIGHT_INCHES.map((h) => [String(h), formatHeight(h, bnNumber)]));
+// Dropdowns whose stored value is a number
+const NUMERIC_SELECTS: Field[] = ['heightInches'];
 
 // Same groups and labels as the admin edit form
 const SECTIONS: { title: string; fields: [Field, string, Kind][] }[] = [
@@ -28,6 +33,14 @@ const SECTIONS: { title: string; fields: [Field, string, Kind][] }[] = [
       ['dateOfBirth', 'জন্ম তারিখ', 'date'],
       ['maritalStatus', 'বৈবাহিক অবস্থা', { NEVER_MARRIED: 'অবিবাহিত', DIVORCED: 'ডিভোর্সড', WIDOWED: 'বিধবা/বিপত্নীক' }],
       ['numberOfChildren', 'সন্তান সংখ্যা', 'int'],
+    ],
+  },
+  {
+    title: 'শারীরিক গঠন',
+    fields: [
+      ['heightInches', 'উচ্চতা', HEIGHTS],
+      ['weightKg', 'ওজন (কেজি)', 'int'],
+      ['skinTone', 'গাত্রবর্ণ', SKIN_TONE_OPTIONS],
     ],
   },
   {
@@ -125,7 +138,7 @@ export function BiodataImporter() {
       return <input type={kind === 'date' ? 'date' : 'text'} className={inputClass} value={(value as string) ?? ''} onChange={(e) => set(field, e.target.value || null)} />;
     }
     if (kind === 'int') {
-      return <input type="number" min={0} max={50} className={inputClass} value={value === null || value === undefined ? '' : String(value)} onChange={(e) => set(field, e.target.value === '' ? null : Number(e.target.value))} />;
+      return <input type="number" min={0} max={field === 'weightKg' ? 250 : 50} className={inputClass} value={value === null || value === undefined ? '' : String(value)} onChange={(e) => set(field, e.target.value === '' ? null : Number(e.target.value))} />;
     }
     const entries = Array.isArray(kind) ? kind.map((o) => [o, o]) : Object.entries(kind);
     const isBool = kind === BOOL;
@@ -133,7 +146,7 @@ export function BiodataImporter() {
       <select
         className={inputClass}
         value={value === null || value === undefined ? '' : String(value)}
-        onChange={(e) => set(field, e.target.value === '' ? null : isBool ? e.target.value === 'true' : e.target.value)}
+        onChange={(e) => set(field, e.target.value === '' ? null : isBool ? e.target.value === 'true' : NUMERIC_SELECTS.includes(field) ? Number(e.target.value) : e.target.value)}
       >
         <option value="">— নির্বাচন করুন —</option>
         {entries.map(([v, label]) => <option key={v} value={v}>{label}</option>)}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Gender, MaritalStatus } from '@prisma/client';
 import { createImportedBiodata } from '@/lib/import-biodata';
+import { parseHeight, parseWeight } from '@/lib/constants';
 
 // API key for n8n webhook authentication
 const API_KEY = process.env.BIODATA_IMPORT_API_KEY;
@@ -82,6 +83,9 @@ export async function POST(request: Request) {
         gender,
         religion: text(data.religion),
         sect: text(data.sect),
+        heightInches: parseHeight(data.heightInches ?? data.height),
+        weightKg: parseWeight(data.weightKg ?? data.weight),
+        skinTone: text(data.skinTone || data.complexion || data.skinColor),
         country: text(data.country),
         division: text(data.division),
         district: text(data.district),
@@ -142,7 +146,7 @@ export async function GET(request: Request) {
     status: 'ok',
     message: 'Biodata import API is ready',
     fields: [
-      'displayName/name', 'dateOfBirth/dob', 'gender',
+      'displayName/name', 'dateOfBirth/dob', 'gender', 'height (5\'7" / ৫ ফুট ৭ ইঞ্চি / 170cm)', 'weight (kg)', 'skinTone/complexion',
       'country', 'division', 'district', 'upazila/area',
       'education', 'educationDetails', 'occupation', 'occupationDetails', 'monthlyIncome/income',
       'maritalStatus', 'numberOfChildren/children', 'fatherAlive/father', 'motherAlive/mother', 'siblings',

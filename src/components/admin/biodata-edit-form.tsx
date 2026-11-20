@@ -12,19 +12,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import {
   DIVISIONS, EDUCATION_OPTIONS, OCCUPATION_OPTIONS, MAZHAB_OPTIONS, FAMILY_STATUS_OPTIONS,
-  INCOME_OPTIONS, FAMILY_TYPE_OPTIONS, PRAYER_OPTIONS, BEARD_HIJAB_OPTIONS,
+  INCOME_OPTIONS, FAMILY_TYPE_OPTIONS, PRAYER_OPTIONS, BEARD_HIJAB_OPTIONS, SKIN_TONE_OPTIONS,
+  HEIGHT_INCHES, WEIGHT_MIN_KG, WEIGHT_MAX_KG, formatHeight,
 } from '@/lib/constants';
-import { GENDER_LABELS, MARITAL_LABELS } from '@/lib/admin-labels';
+import { GENDER_LABELS, MARITAL_LABELS, bnNumber } from '@/lib/admin-labels';
 
 type Fields = Record<
   | 'displayName' | 'dateOfBirth' | 'gender' | 'country' | 'division' | 'district' | 'upazila'
   | 'education' | 'educationDetails' | 'occupation' | 'occupationDetails' | 'monthlyIncome'
   | 'maritalStatus' | 'numberOfChildren' | 'fatherAlive' | 'motherAlive' | 'siblings' | 'familyType' | 'familyStatus'
+  | 'heightInches' | 'weightKg' | 'skinTone'
   | 'prayerHabit' | 'beardOrHijab' | 'mazhab' | 'sect' | 'aboutMe' | 'partnerPreferences' | 'phoneNumber' | 'guardianPhone' | 'contactEmail',
   string
 >;
 
 // Same choices as the member form (src/app/(dashboard)/profile/page.tsx)
+const HEIGHT_LABELS = Object.fromEntries(HEIGHT_INCHES.map((h) => [String(h), formatHeight(h, bnNumber)]));
 
 const selectClass =
   'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700 disabled:cursor-not-allowed disabled:bg-gray-100';
@@ -108,6 +111,9 @@ export function AdminBiodataEditForm({
         </div>
         {select('maritalStatus', 'বৈবাহিক অবস্থা', MARITAL_LABELS)}
         {text('numberOfChildren', 'সন্তান সংখ্যা', { type: 'number', min: 0, max: 50 })}
+        {select('heightInches', 'উচ্চতা', HEIGHT_LABELS)}
+        {text('weightKg', 'ওজন (কেজি)', { type: 'number', min: WEIGHT_MIN_KG, max: WEIGHT_MAX_KG })}
+        {select('skinTone', 'গাত্রবর্ণ', SKIN_TONE_OPTIONS)}
         {text('country', 'দেশ')}
         {select('division', 'বিভাগ', DIVISIONS)}
         {text('district', 'জেলা')}

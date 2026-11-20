@@ -192,6 +192,11 @@ model Profile {
   religion            String?       @default("ইসলাম")
   sect                String?
 
+  // Physical
+  heightInches        Int?          // Total inches; shown as feet' inches"
+  weightKg            Int?
+  skinTone            String?
+
   // Location
   country             String?
   division            String?

@@ -10,6 +10,9 @@ export interface ImportBiodataFields {
   gender: Gender;
   religion: string | null;
   sect: string | null;
+  heightInches?: number | null;
+  weightKg?: number | null;
+  skinTone?: string | null;
   country: string | null;
   division: string | null;
   district: string | null;

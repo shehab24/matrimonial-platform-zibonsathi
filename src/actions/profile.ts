@@ -49,6 +49,9 @@ export async function upsertProfile(data: {
   beardOrHijab?: string;
   mazhab?: string;
   sect?: string;
+  heightInches?: number | null;
+  weightKg?: number | null;
+  skinTone?: string;
   aboutMe?: string;
   partnerPreferences?: string;
   phoneNumber?: string;
