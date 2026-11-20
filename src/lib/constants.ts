@@ -41,6 +41,9 @@ export function parseHeight(value: unknown): number | null {
   if (typeof value === 'number') return inRange(value, HEIGHT_MIN_INCHES, HEIGHT_MAX_INCHES);
   if (typeof value !== 'string' || !value.trim()) return null;
   const s = toLatinDigits(value).toLowerCase();
+  // "5.2", "5.2 ft", "৫.১১ ফুট": in Bangladeshi biodatas the part after the dot is inches, not a fraction of a foot
+  const dotted = s.match(/^\s*(\d)\.(\d{1,2})\s*(?:ft|feet|foot|ফুট|ফিট)?\s*$/);
+  if (dotted) return Number(dotted[2]) < 12 ? inRange(Number(dotted[1]) * 12 + Number(dotted[2]), HEIGHT_MIN_INCHES, HEIGHT_MAX_INCHES) : null;
   const feet = s.match(/(\d+)\s*(?:'|’|′|ft|feet|foot|ফুট|ফিট)\s*(?:(\d+(?:\.\d+)?)\s*(?:"|”|″|in|inch|ইঞ্চি)?)?/);
   if (feet) return inRange(Number(feet[1]) * 12 + Number(feet[2] ?? 0), HEIGHT_MIN_INCHES, HEIGHT_MAX_INCHES);
   const cm = s.match(/(\d{3}(?:\.\d+)?)\s*(?:cm|সেমি|সে\.মি)/);

@@ -153,7 +153,7 @@ export default function ProfilePage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('height')}</Label>
+                  <Label>{t('height')} <span className="text-red-600">*</span></Label>
                   <select className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700" value={profile.heightInches == null ? '' : String(profile.heightInches)} onChange={e => handleChange('heightInches', e.target.value === '' ? null : Number(e.target.value))}>
                     <option value="">{t('select')}</option>
                     {HEIGHT_INCHES.map(h => <option key={h} value={h}>{formatHeight(h, n => format.number(n))}</option>)}
@@ -164,7 +164,7 @@ export default function ProfilePage() {
                   <Input type="number" min={WEIGHT_MIN_KG} max={WEIGHT_MAX_KG} value={profile.weightKg == null ? '' : String(profile.weightKg)} onChange={e => handleChange('weightKg', e.target.value === '' ? null : Number(e.target.value))} placeholder={t('weightPlaceholder')} />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('skinTone')}</Label>
+                  <Label>{t('skinTone')} <span className="text-red-600">*</span></Label>
                   <select className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-green-700" value={(profile.skinTone as string) || ''} onChange={e => handleChange('skinTone', e.target.value)}>
                     <option value="">{t('select')}</option>
                     {SKIN_TONE_OPTIONS.map(s => <option key={s} value={s}>{to(s)}</option>)}

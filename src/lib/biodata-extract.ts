@@ -57,7 +57,7 @@ Fields:
 - dateOfBirth: "YYYY-MM-DD". If only month and year are given use the 1st of the month; if only an age is given, use January 1 of (current year - age) and add a warning saying the date was estimated from the age.
 - gender: MALE for পাত্র/groom/ছেলে, FEMALE for পাত্রী/bride/মেয়ে. Infer it from context (e.g. hijab vs beard, "পাত্রের বায়োডাটা") when it isn't stated outright. null only if it truly can't be told.
 - sect: e.g. সুন্নি, only if stated.
-- heightInches: height converted to TOTAL inches as an integer (৫ ফুট ৭ ইঞ্চি / 5'7" = 67; 170 cm = 67). null if not stated.
+- heightInches: height converted to TOTAL inches as an integer (৫ ফুট ৭ ইঞ্চি / 5'7" = 67; "5.2" or "৫.২ ফুট" means 5 feet 2 inches = 62; 170 cm = 67). null if not stated.
 - weightKg: weight in kilograms as an integer (৬০ কেজি = 60; convert pounds). null if not stated.
 - skinTone: complexion (গাত্রবর্ণ / গায়ের রং), one of ${list(SKIN_TONE_OPTIONS)}. "উজ্জ্বল ফর্সা" = very fair, "ফর্সা" = fair, "উজ্জ্বল শ্যামলা" = light wheatish, "শ্যামলা" = wheatish/brown, "কালো" = dark.
 - country: "বাংলাদেশ" for Bangladesh; otherwise the country name in Bangla. If the person lives abroad but is from Bangladesh, use the country of their permanent address.

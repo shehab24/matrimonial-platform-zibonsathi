@@ -656,7 +656,8 @@
     "trxIdInvalid": "Enter a valid transaction ID (TrxID): 6-20 English letters and digits.",
     "trxIdUsed": "A payment with this transaction ID has already been submitted.",
     "tooManyPendingPayments": "You already have several payments waiting for review. Please try again once they are checked.",
-    "importedNoConnection": "This biodata's contact details are free. Submit your own biodata to see them, no request needed."
+    "importedNoConnection": "This biodata's contact details are free. Submit your own biodata to see them, no request needed.",
+    "physicalRequired": "Fill in your height and complexion in the first step (Basic info) before submitting for approval"
   },
   "notifications": {
     "title": "Notifications",

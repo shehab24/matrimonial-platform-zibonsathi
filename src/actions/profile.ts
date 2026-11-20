@@ -149,6 +149,11 @@ export async function submitForApproval() {
       return { success: false, error: await actionError('profileSuspended') };
     }
 
+    // Height and complexion are shown on every listing card, so a biodata can't go to review without them
+    if (!profile.heightInches || !profile.skinTone) {
+      return { success: false, error: await actionError('physicalRequired') };
+    }
+
     // Both commitments on the last form step are required before review
     if (profile.hadiaPledge === null || !profile.removalPledgeAcceptedAt) {
       return { success: false, error: await actionError('pledgeRequired') };
