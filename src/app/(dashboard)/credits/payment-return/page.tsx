@@ -5,12 +5,14 @@ import { CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { verifyCodePayPayment } from '@/lib/payment-credits';
 import { Button } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
 
-// CodePay sends the member back here. Nothing it appends to the URL is trusted for crediting:
-// the parameters are only stored so an admin can see them while confirming the payment.
+// CodePay sends the member back here with ?payment_id=…&status=…, but anyone can edit a URL, so none of it is
+// trusted. The page asks CodePay's status endpoint directly; credits are added only if it says COMPLETED for
+// this order and the full amount. The URL parameters are just stored for the admin payments page.
 export default async function PaymentReturnPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await auth();
   if (!session?.user?.id) redirect('/login');
@@ -18,7 +20,7 @@ export default async function PaymentReturnPage({ searchParams }: { searchParams
   const params = await searchParams;
   const paymentId = typeof params.payment === 'string' ? params.payment : null;
 
-  const payment = paymentId
+  let payment = paymentId
     ? await prisma.payment.findFirst({ where: { id: paymentId, userId: session.user.id }, include: { package: true } })
     : null;
 
@@ -33,6 +35,17 @@ export default async function PaymentReturnPage({ searchParams }: { searchParams
         where: { id: payment.id },
         data: { metadata: { ...((payment.metadata as Prisma.JsonObject | null) ?? {}), returnParams } },
       });
+    }
+  }
+
+  // Settle it with CodePay right away (no-op if the webhook already did), then show the real status
+  if (payment?.status === 'PENDING' && payment.provider === 'codepay') {
+    const result = await verifyCodePayPayment(payment.id).catch((error) => {
+      console.error('payment-return verify error:', error);
+      return 'unavailable' as const;
+    });
+    if (result === 'completed' || result === 'failed') {
+      payment = await prisma.payment.findUnique({ where: { id: payment.id }, include: { package: true } });
     }
   }
 

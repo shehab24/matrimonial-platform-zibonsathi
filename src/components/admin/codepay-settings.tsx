@@ -23,6 +23,10 @@ export function CodePaySettings({ settings }: { settings: Record<string, string>
   const [apiKey, setApiKey] = useState(settings.codepay_api_key ?? '');
   const [apiSecret, setApiSecret] = useState('');
   const [secretSet, setSecretSet] = useState(settings.codepay_api_secret_set === 'true');
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const [webhookSecretSet, setWebhookSecretSet] = useState(settings.codepay_webhook_secret_set === 'true');
+  // Rendered client-side only (after settings load), so window is available
+  const [webhookUrl] = useState(() => (typeof window === 'undefined' ? '' : `${window.location.origin}/api/webhook/codepay`));
   const [checkoutUrl, setCheckoutUrl] = useState(settings.codepay_checkout_url || DEFAULT_CHECKOUT_URL);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -43,10 +47,13 @@ export function CodePaySettings({ settings }: { settings: Record<string, string>
     try {
       await saveSetting('codepay_api_key', apiKey.trim());
       if (apiSecret.trim()) await saveSetting('codepay_api_secret', apiSecret.trim());
+      if (webhookSecret.trim()) await saveSetting('codepay_webhook_secret', webhookSecret.trim());
       await saveSetting('codepay_checkout_url', checkoutUrl.trim());
       await saveSetting('codepay_enabled', String(enabled));
       if (apiSecret.trim()) setSecretSet(true);
+      if (webhookSecret.trim()) setWebhookSecretSet(true);
       setApiSecret('');
+      setWebhookSecret('');
       setMessage({ type: 'success', text: 'পেমেন্ট সেটিংস সংরক্ষণ হয়েছে!' });
     } catch {
       setMessage({ type: 'error', text: 'সংরক্ষণ করতে সমস্যা হয়েছে' });
@@ -108,6 +115,33 @@ export function CodePaySettings({ settings }: { settings: Record<string, string>
               <CheckCircle2 className="h-3.5 w-3.5" /> Secret সংরক্ষিত আছে। নিরাপত্তার জন্য এটি আর দেখানো হয় না।
             </p>
           )}
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+          <div>
+            <p className="text-sm font-medium text-gray-700">Webhook URL</p>
+            <code className="mt-1 block break-all rounded bg-white px-3 py-2 text-xs text-gray-800 border border-gray-200">{webhookUrl || '…/api/webhook/codepay'}</code>
+            <p className="mt-1 text-xs text-gray-500">
+              পেমেন্ট নিজে থেকেই যাচাই হয়ে ক্রেডিট যোগ হয়। সদস্য পেমেন্টের পর পেজ বন্ধ করে দিলেও যেন ক্রেডিট যোগ হয়, সেজন্য নিচে Webhook Secret দিন
+              (CodePay ড্যাশবোর্ড → Developer API → Webhooks)। চেকআউটের সময় এই URL স্বয়ংক্রিয়ভাবে পাঠানো হয়।
+            </p>
+          </div>
+          <div>
+            <label htmlFor="codepay-webhook-secret" className="block text-sm font-medium text-gray-700 mb-2">Webhook Secret (ঐচ্ছিক)</label>
+            <input
+              id="codepay-webhook-secret"
+              type="password"
+              value={webhookSecret}
+              onChange={e => setWebhookSecret(e.target.value)}
+              placeholder={webhookSecretSet ? '•••••••• (সংরক্ষিত আছে, পরিবর্তন করতে নতুন দিন)' : 'API Secret নয়, আলাদা Webhook Secret'}
+              autoComplete="new-password"
+              className={inputClass}
+            />
+            {webhookSecretSet && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-green-700">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Webhook Secret সংরক্ষিত আছে।
+              </p>
+            )}
+          </div>
         </div>
         <div>
           <label htmlFor="codepay-url" className="block text-sm font-medium text-gray-700 mb-2">Checkout URL</label>

@@ -81,6 +81,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
               {payments.map(p => {
                 const meta = (p.metadata ?? {}) as Record<string, unknown>;
                 const returned = meta.returnParams as Record<string, string> | undefined;
+                const codepay = meta.codepay as { status: string; paid_amount: number | null; method: string | null; trx_id: string | null; sender_number: string | null } | undefined;
                 const manual = meta.manual as { method: ManualMethod; trxId: string; senderNumber: string; paidTo: string } | undefined;
                 return (
                   <tr key={p.id} className="align-top">
@@ -106,6 +107,17 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
                           <span className="mb-1 inline-block rounded bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">CodePay</span>
                           <br />
                           <code className="text-xs text-gray-700">{p.id}</code>
+                          {codepay && (
+                            <div className="mt-1 space-y-0.5 text-xs">
+                              {codepay.trx_id && <p>TrxID: <code className="font-bold text-gray-900">{codepay.trx_id}</code>{codepay.method ? ` · ${codepay.method}` : ''}</p>}
+                              {codepay.sender_number && <p className="text-gray-600">প্রেরক: <span className="font-mono">{codepay.sender_number}</span></p>}
+                              <p className="text-gray-500">CodePay: {codepay.status}{codepay.paid_amount != null ? ` · ৳ ${bn(codepay.paid_amount)} পরিশোধিত` : ''}</p>
+                              {!!meta.autoVerified && <p className="font-semibold text-green-700">স্বয়ংক্রিয়ভাবে যাচাই হয়েছে</p>}
+                            </div>
+                          )}
+                          {!!meta.amountMismatch && (
+                            <p className="mt-1 text-xs font-semibold text-red-600">টাকার পরিমাণ মেলেনি, নিজে দেখে নিশ্চিত করুন</p>
+                          )}
                         </>
                       )}
                       {returned && (
@@ -127,7 +139,7 @@ export default async function AdminPaymentsPage({ searchParams }: { searchParams
                     <td className="px-4 py-3">
                       <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${STATUS_STYLES[p.status]}`}>{p.status}</span>
                     </td>
-                    <td className="px-4 py-3">{p.status === 'PENDING' && <PaymentActions paymentId={p.id} />}</td>
+                    <td className="px-4 py-3">{p.status === 'PENDING' && <PaymentActions paymentId={p.id} isCodePay={p.provider === 'codepay'} />}</td>
                   </tr>
                 );
               })}

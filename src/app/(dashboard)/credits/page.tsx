@@ -8,6 +8,7 @@ import { ArrowLeft, CreditCard, TrendingUp } from 'lucide-react';
 import { BuyButton } from '@/components/credits/buy-button';
 import { getCodePayConfig } from '@/lib/codepay';
 import { getManualPaymentConfig } from '@/lib/manual-payment';
+import { settleRecentCodePayPayments } from '@/lib/payment-credits';
 import { ManualPayButton } from '@/components/credits/manual-pay-button';
 import { Clock } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
@@ -19,6 +20,9 @@ export default async function CreditsPage({ searchParams }: { searchParams: Prom
   // Sent here from a biodata's contact button: offer a way back. Only same-site biodata paths are accepted.
   const { from } = await searchParams;
   const backTo = from && /^\/(biodata|profile)\/[\w-]+$/.test(from) ? from : null;
+
+  // Settle any CodePay payment of theirs still pending (closed the tab, webhook missed) so the balance is current
+  await settleRecentCodePayPayments(session.user.id);
 
   const [creditBalance, ledger, packages, codepay, manual, pendingPayments] = await Promise.all([
     prisma.creditBalance.findUnique({ where: { userId: session.user.id } }),

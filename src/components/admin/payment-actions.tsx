@@ -5,11 +5,31 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
-import { confirmPayment, markPaymentFailed } from '@/actions/payment';
+import { confirmPayment, markPaymentFailed, recheckCodePayPayment } from '@/actions/payment';
 
-export function PaymentActions({ paymentId }: { paymentId: string }) {
+const RECHECK_MESSAGES = {
+  completed: 'CodePay নিশ্চিত করেছে: পেমেন্ট সম্পন্ন, ক্রেডিট যোগ হয়েছে',
+  failed: 'CodePay অনুযায়ী পেমেন্ট বাতিল/মেয়াদোত্তীর্ণ, ব্যর্থ হিসেবে চিহ্নিত হয়েছে',
+  pending: 'CodePay অনুযায়ী এখনো পরিশোধিত নয় (বা টাকার পরিমাণ মেলেনি)',
+  unavailable: 'CodePay থেকে উত্তর পাওয়া যায়নি, পরে আবার চেষ্টা করুন',
+} as const;
+
+export function PaymentActions({ paymentId, isCodePay = false }: { paymentId: string; isCodePay?: boolean }) {
   const router = useRouter();
-  const [busy, setBusy] = useState<'confirm' | 'fail' | null>(null);
+  const [busy, setBusy] = useState<'confirm' | 'fail' | 'recheck' | null>(null);
+
+  const recheck = async () => {
+    setBusy('recheck');
+    const res = await recheckCodePayPayment(paymentId);
+    setBusy(null);
+    if (res.success && res.result) {
+      const ok = res.result === 'completed' || res.result === 'failed';
+      toast({ variant: ok ? 'success' : 'destructive', title: RECHECK_MESSAGES[res.result] });
+      router.refresh();
+    } else {
+      toast({ variant: 'destructive', title: 'ত্রুটি', description: res.error });
+    }
+  };
 
   const run = async (kind: 'confirm' | 'fail') => {
     const question = kind === 'confirm'
@@ -28,7 +48,13 @@ export function PaymentActions({ paymentId }: { paymentId: string }) {
   };
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
+      {isCodePay && (
+        <Button size="sm" variant="secondary" onClick={recheck} disabled={!!busy}>
+          {busy === 'recheck' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          CodePay-তে যাচাই
+        </Button>
+      )}
       <Button size="sm" onClick={() => run('confirm')} disabled={!!busy}>
         {busy === 'confirm' && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
         নিশ্চিত করুন

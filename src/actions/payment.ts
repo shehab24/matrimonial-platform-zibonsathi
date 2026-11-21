@@ -7,15 +7,16 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { actionError } from '@/lib/action-error';
 import { createCodePayCheckout, getCodePayConfig, siteBaseUrl } from '@/lib/codepay';
-import { getManualPaymentConfig, manualProvider, MANUAL_METHOD_LABELS, type ManualMethod } from '@/lib/manual-payment';
+import { getManualPaymentConfig, manualProvider, type ManualMethod } from '@/lib/manual-payment';
+import { grantPaymentCredits, verifyCodePayPayment } from '@/lib/payment-credits';
 import { normalizePhone } from '@/lib/phone';
 
 /**
  * Start a CodePay checkout for a credit package. Creates a PENDING payment (its id is the order_id
  * CodePay sees) and returns the hosted checkout URL to send the visitor to.
  *
- * Credits are NOT granted when the visitor comes back: the return URL can be typed by anyone.
- * They are granted by confirmPayment once the payment is verified.
+ * Credits are never granted from the return URL (anyone can type it). They're granted once CodePay's status
+ * endpoint says the payment is COMPLETED (verifyCodePayPayment: return page, webhook, credits page), or by an admin.
  */
 export async function startCodePayCheckout(packageId: string) {
   const session = await auth();
@@ -46,12 +47,15 @@ export async function startCodePayCheckout(packageId: string) {
     },
   });
 
+  const base = await siteBaseUrl();
   const result = await createCodePayCheckout(config, {
     amount: Number(pkg.price),
     orderId: payment.id,
     customerName: user.name || user.email,
     customerEmail: user.email,
-    redirectUrl: `${await siteBaseUrl()}/credits/payment-return?payment=${payment.id}`,
+    redirectUrl: `${base}/credits/payment-return?payment=${payment.id}`,
+    // CodePay only accepts a public https webhook, and it's useless without the secret to check it with
+    webhookUrl: config.webhookSecret && /^https:\/\//.test(base) ? `${base}/api/webhook/codepay` : undefined,
   });
 
   await prisma.payment.update({
@@ -135,12 +139,6 @@ export async function submitManualPayment(data: { packageId: string; method: str
   }
 }
 
-/** Ledger note for a purchase, e.g. "স্ট্যান্ডার্ড (বিকাশ)" */
-function purchaseNote(packageName: string, provider: string) {
-  const method = provider.replace(/^manual_/, '') as ManualMethod;
-  return `${packageName} (${provider.startsWith('manual_') ? MANUAL_METHOD_LABELS[method] ?? provider : 'CodePay'})`;
-}
-
 async function requireAdmin() {
   const session = await auth();
   if (!session?.user?.id || session.user.role !== 'ADMIN') {
@@ -167,49 +165,27 @@ export async function listPayments(status?: 'PENDING' | 'COMPLETED' | 'FAILED' |
 export async function confirmPayment(paymentId: string) {
   const session = await requireAdmin();
   try {
-    const granted = await prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.findUnique({ where: { id: paymentId }, include: { package: true } });
-      if (!payment) return false;
-      const claimed = await tx.payment.updateMany({
-        where: { id: paymentId, status: 'PENDING' },
-        data: { status: 'COMPLETED', creditsGranted: payment.package.credits },
-      });
-      if (claimed.count === 0) return false;
-
-      const credits = payment.package.credits;
-      const balance = await tx.creditBalance.upsert({
-        where: { userId: payment.userId },
-        create: { userId: payment.userId, balance: credits },
-        update: { balance: { increment: credits } },
-      });
-      await tx.creditLedger.create({
-        data: {
-          userId: payment.userId,
-          type: 'PURCHASE',
-          amount: credits,
-          balanceBefore: balance.balance - credits,
-          balanceAfter: balance.balance,
-          paymentId: payment.id,
-          note: purchaseNote(payment.package.name, payment.provider),
-        },
-      });
-      await tx.payment.update({
-        where: { id: paymentId },
-        data: {
-          metadata: {
-            ...((payment.metadata as Prisma.JsonObject | null) ?? {}),
-            confirmedBy: session.user.id,
-            confirmedAt: new Date().toISOString(),
-          },
-        },
-      });
-      return true;
+    const granted = await grantPaymentCredits(paymentId, {
+      metadata: { confirmedBy: session.user.id, confirmedAt: new Date().toISOString() },
     });
     revalidatePath('/admin/payments');
     return granted ? { success: true } : { success: false, error: 'এই পেমেন্টটি আর পেন্ডিং নেই' };
   } catch (error) {
     console.error('confirmPayment error:', error);
     return { success: false, error: 'পেমেন্ট নিশ্চিত করা যায়নি' };
+  }
+}
+
+/** Admin: ask CodePay for this payment's status now and settle it (credits added only if CodePay says paid) */
+export async function recheckCodePayPayment(paymentId: string) {
+  await requireAdmin();
+  try {
+    const result = await verifyCodePayPayment(paymentId);
+    revalidatePath('/admin/payments');
+    return { success: true, result };
+  } catch (error) {
+    console.error('recheckCodePayPayment error:', error);
+    return { success: false, error: 'CodePay থেকে যাচাই করা যায়নি' };
   }
 }
 
