@@ -1,5 +1,6 @@
 'use server';
 
+import { assignBiodataId } from '@/lib/biodata-id';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { actionError } from '@/lib/action-error';
@@ -158,6 +159,10 @@ export async function submitForApproval() {
     if (profile.hadiaPledge === null || !profile.removalPledgeAcceptedAt) {
       return { success: false, error: await actionError('pledgeRequired') };
     }
+
+    // The biodata no. (ZBM-00001 / ZBF-00001) is given on submission, so the biodata has its public link
+    // while under review. Kept if it's later rejected or resubmitted.
+    await assignBiodataId(profile.id);
 
     await prisma.profile.update({
       where: { userId: session.user.id },

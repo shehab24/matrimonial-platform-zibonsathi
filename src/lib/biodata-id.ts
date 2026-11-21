@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { Gender } from '@prisma/client';
+import { Gender, Prisma } from '@prisma/client';
 
 /**
  * Generate a unique Biodata ID in format:
@@ -42,7 +42,9 @@ export async function generateBiodataId(gender: Gender): Promise<string> {
 }
 
 /**
- * Assign a biodata ID to a profile (used during admin approval)
+ * Assign a biodata ID to a profile. Runs when a member submits their biodata (so it has its number while
+ * under review) and again on admin approval as a fallback for older biodatas submitted without one.
+ * A rejected biodata keeps its number, so numbers can have gaps; that's expected.
  */
 export async function assignBiodataId(profileId: string): Promise<string | null> {
   const profile = await prisma.profile.findUnique({
@@ -63,12 +65,19 @@ export async function assignBiodataId(profileId: string): Promise<string | null>
     throw new Error('Profile gender is required to generate biodata ID');
   }
 
-  const biodataId = await generateBiodataId(profile.gender);
-
-  await prisma.profile.update({
-    where: { id: profileId },
-    data: { oderId: biodataId },
-  });
-
-  return biodataId;
+  // Two submissions at the same moment can pick the same next number; the unique index rejects the
+  // second one, so try again with a fresh number
+  for (let attempt = 0; ; attempt++) {
+    const biodataId = await generateBiodataId(profile.gender);
+    try {
+      await prisma.profile.update({
+        where: { id: profileId },
+        data: { oderId: biodataId },
+      });
+      return biodataId;
+    } catch (error) {
+      const isConflict = error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+      if (!isConflict || attempt >= 4) throw error;
+    }
+  }
 }

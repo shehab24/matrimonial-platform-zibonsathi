@@ -63,8 +63,12 @@ interface ProfileData {
   approvedAt: string | null;
   createdAt: string | null;
   isOwn: boolean;
+  // Owner only
+  status?: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | null;
+  isVisible?: boolean | null;
   // Imported biodata: contact numbers are free for any logged-in member
   freeContact?: boolean;
+  needsBiodata?: boolean;
 }
 
 type Row = { label: string; value: React.ReactNode };
@@ -80,6 +84,7 @@ function calcAge(dob: string | null): number | null {
  */
 export function BiodataDetail({ slug }: { slug: string }) {
   const t = useTranslations('biodata');
+  const ts = useTranslations('profileStatus');
   const tc = useTranslations('common');
   const tm = useTranslations('maritalStatus');
   const td = useTranslations('divisions');
@@ -359,13 +364,15 @@ export function BiodataDetail({ slug }: { slug: string }) {
 
   // Contact button, shared by the sidebar and the contact section
   const connectButton = (className?: string) => {
-    // Imported biodata: no connection needed, just log in
+    // Imported biodata: no connection or credit needed, only a submitted biodata of the visitor's own.
+    // Logged-out visitors get the same prompt; the button logs them in and goes straight to the biodata form.
     if (profile.freeContact) {
       if (hasContact) return null;
-      if (sessionStatus === 'unauthenticated') {
+      if (sessionStatus === 'unauthenticated' || profile.needsBiodata) {
+        const href = sessionStatus === 'unauthenticated' ? `/login?callbackUrl=${encodeURIComponent('/profile')}` : '/profile';
         return (
-          <Link href={loginHref} className={cn('block', className)}>
-            <Button className="w-full h-11 rounded-xl">{t('loginToContact')}</Button>
+          <Link href={href} className={cn('block', className)}>
+            <Button className="w-full h-11 rounded-xl"><Pencil className="h-4 w-4 mr-2" />{t('submitBiodataToContact')}</Button>
           </Link>
         );
       }
@@ -438,6 +445,13 @@ export function BiodataDetail({ slug }: { slug: string }) {
               {profile.isOwn ? (
                 <div className="mt-4 w-full space-y-2">
                   <p className="rounded-xl bg-green-50 px-3 py-2 text-center text-[13px] text-green-800">{t('ownBiodata')}</p>
+                  {profile.status && profile.status !== 'APPROVED' ? (
+                    <p className="rounded-xl bg-yellow-100/70 px-3 py-2 text-center text-[13px] text-yellow-900">
+                      {t('ownNotPublic', { status: ts(profile.status) })}
+                    </p>
+                  ) : profile.isVisible === false ? (
+                    <p className="rounded-xl bg-yellow-100/70 px-3 py-2 text-center text-[13px] text-yellow-900">{t('ownHidden')}</p>
+                  ) : null}
                   <div className="grid grid-cols-2 gap-2">
                     <Link href="/profile">
                       <SideAction icon={Pencil} label={t('editBiodata')} />
@@ -507,7 +521,7 @@ export function BiodataDetail({ slug }: { slug: string }) {
                 <div className="rounded-xl border border-dashed border-green-200 bg-green-50/60 p-5 text-center">
                   <p className="mx-auto max-w-md text-[14px] leading-relaxed text-gray-700">
                     {profile.freeContact
-                      ? sessionStatus === 'unauthenticated' ? t('contactLoginRequired') : t('contactUnavailable')
+                      ? sessionStatus === 'unauthenticated' || profile.needsBiodata ? t('contactBiodataRequired') : t('contactUnavailable')
                       : connectionStatus === 'PENDING' ? t('contactPending') : creditBalance === 0 ? t('contactNoCredits') : t('contactLocked')}
                   </p>
                   <div className="mx-auto mt-4 max-w-xs">{connectButton()}</div>

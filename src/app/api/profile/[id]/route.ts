@@ -21,7 +21,10 @@ export async function GET(
     },
   });
 
-  if (!profile || profile.status !== ProfileStatus.APPROVED || !profile.isVisible) {
+  // The owner can preview their own biodata at any status (e.g. while it's under review); everyone else
+  // only sees approved, visible biodatas
+  const isOwner = !!session?.user?.id && profile?.userId === session.user.id;
+  if (!profile || (!isOwner && (profile.status !== ProfileStatus.APPROVED || !profile.isVisible))) {
     return NextResponse.json({ error: await actionError('profileNotFound') }, { status: 404 });
   }
 
@@ -75,17 +78,36 @@ export async function GET(
     createdAt: profile.createdAt,
     // Lets the page hide proposal/favorite/report buttons on the viewer's own biodata
     isOwn: session?.user?.id === profile.userId,
+    // Only sent to the owner, so the page can say the biodata isn't public yet
+    status: session?.user?.id === profile.userId ? profile.status : null,
+    isVisible: session?.user?.id === profile.userId ? profile.isVisible : null,
     // NEVER include phoneNumber, guardianPhone or contactEmail unless authorized
     phoneNumber: null as string | null,
     guardianPhone: null as string | null,
     contactEmail: null as string | null,
-    // Imported biodata: contact is free for any logged-in member (no connection or own biodata needed)
+    // Imported biodata: contact is free (no connection or credit), but only for logged-in members who have
+    // submitted their own biodata. It doesn't need to be approved yet, just submitted.
     freeContact: isImportedEmail(profile.user.email),
+    // Set for a logged-in viewer of an imported biodata who hasn't submitted a biodata of their own yet
+    needsBiodata: false,
   };
 
   // Server-side only. Contact numbers are revealed when the viewer sent (paid for) a connection to this
-  // biodata, or received one from it and accepted. Imported biodatas are free for any logged-in user.
+  // biodata, or received one from it and accepted. Imported biodatas are free for logged-in users who have
+  // submitted their own biodata.
   if (session?.user?.id && !safeProfile.isOwn) {
+    if (safeProfile.freeContact) {
+      // A draft (never submitted) or a rejected/suspended biodata doesn't qualify
+      const ownBiodata = await prisma.profile.findFirst({
+        where: {
+          userId: session.user.id,
+          status: { in: [ProfileStatus.PENDING_APPROVAL, ProfileStatus.APPROVED] },
+        },
+        select: { id: true },
+      });
+      safeProfile.needsBiodata = !ownBiodata;
+    }
+
     const connection = safeProfile.freeContact
       ? null
       : await prisma.connection.findFirst({
@@ -100,7 +122,7 @@ export async function GET(
           select: { id: true },
         });
 
-    if (safeProfile.freeContact || connection) {
+    if ((safeProfile.freeContact && !safeProfile.needsBiodata) || connection) {
       safeProfile.displayName = profile.displayName;
       safeProfile.phoneNumber = profile.phoneNumber;
       safeProfile.guardianPhone = profile.guardianPhone;

@@ -62,7 +62,7 @@ export async function approveProfile(profileId: string) {
   try {
     const session = await requireAdmin();
 
-    // Assign biodata ID if not already assigned
+    // Normally assigned on submission already; this covers older biodatas submitted before that
     const biodataId = await assignBiodataId(profileId);
 
     const profile = await prisma.$transaction(async (tx) => {

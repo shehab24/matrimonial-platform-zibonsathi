@@ -8,9 +8,11 @@ import {
   Search, LayoutGrid, PenSquare, Heart, Ban, Star, ShoppingCart, Send, Inbox, Bell, LogOut, Eye, User, Settings, Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { biodataHref } from '@/lib/biodata-url';
 
 export interface SidebarProfile {
   id: string;
+  oderId: string | null;
   status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
   gender: 'MALE' | 'FEMALE' | null;
 }
@@ -41,8 +43,9 @@ export function DashboardSidebar({ profile }: { profile: SidebarProfile | null }
   const t = useTranslations('dashboard');
   const ts = useTranslations('profileStatus');
   const pathname = usePathname();
-  // Own biodata page is only public once approved; otherwise send the user to the editor
-  const myBiodataHref = profile?.status === 'APPROVED' ? `/profile/${profile.id}` : '/profile';
+  // Owners can preview their biodata as others see it at any status once submitted; a draft goes to the editor.
+  // The biodata no. (/biodata/ZBM-00001) is only assigned on approval, so a pending biodata uses /profile/<id>.
+  const myBiodataHref = profile && profile.status !== 'DRAFT' ? biodataHref(profile) : '/profile';
 
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
